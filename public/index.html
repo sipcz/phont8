@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>DRESDEN TACTICAL v27.1</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="scanlines"></div>
+
+<div id="loginScreen" class="overlay">
+    <div class="box">
+        <div class="drone-logo">TRANSC DRESDEN [V27.1]</div>
+        <input type="password" id="passInput" placeholder="SYSTEM KEY" autocomplete="off">
+        <button id="startBtn" class="btn-main">INITIALIZE SYSTEM</button>
+    </div>
+</div>
+
+<div id="mainApp" class="app-container hidden">
+    <div class="top-bar">
+        <div class="unit-info">UNIT: <span id="myNum" class="green-hero">...</span></div>
+        <div class="net-info">OPS: <span id="userCount" class="green">0</span></div>
+        <div id="status" class="status-tag blink">READY</div>
+    </div>
+
+    <div id="dialerUI" class="ui-section">
+        <div class="section-label">TARGET ACQUISITION</div>
+        <input type="number" id="targetNum" placeholder="TARGET ID" class="tactical-input">
+        <input type="text" id="preCallMsg" placeholder="OPTIONAL PAGING MESSAGE" class="paging-input">
+        <button id="callBtn" class="btn-main pulse">ESTABLISH LINK</button>
+    </div>
+
+    <div id="activeCallUI" class="ui-section hidden">
+        <div class="call-header">
+            CONNECTED TO: <span id="remoteIdDisplay" class="green-hero">...</span>
+        </div>
+        <div id="vizContainer" class="viz-box">
+            <canvas id="localViz"></canvas>
+            <canvas id="remoteViz"></canvas>
+        </div>
+        <div id="chatMessages" class="chat-area"></div>
+        <div id="fileProgress" class="progress-bar hidden"><div id="progBar"></div></div>
+        <div class="chat-controls">
+            <button id="photoBtn" class="btn-side">📎</button>
+            <input type="text" id="msgInput" placeholder="ENCRYPTED MSG...">
+            <button id="sendBtn" class="btn-side">➤</button>
+        </div>
+        <div class="call-controls">
+            <button id="muteBtn" class="btn-sub">🎙 MIC: ON</button>
+            <button id="hangBtn" class="btn-danger">TERMINATE</button>
+        </div>
+    </div>
+</div>
+
+<div id="incomingUI" class="overlay hidden">
+    <div class="box alert-frame">
+        <div class="blink-red">INCOMING SIGNAL</div>
+        <h1 id="callerId" class="green-hero-massive">...</h1>
+        <div id="incomingPaging" class="paging-display"></div>
+        <div class="btn-row">
+            <button id="acceptBtn" class="btn-main">ACCEPT</button>
+            <button id="declineBtn" class="btn-danger">REJECT</button>
+        </div>
+    </div>
+</div>
+
+<div id="lostLinkUI" class="overlay hidden">
+    <div class="box"><div class="blink-red">⚠️ SIGNAL LOST</div><button onclick="location.reload()" class="btn-main">REBOOT</button></div>
+</div>
+
+<audio id="audio" autoplay playsinline></audio>
+<input type="file" id="fileInp" style="display:none" accept="image/*">
+<script src="script.js"></script>
+</body>
+</html>

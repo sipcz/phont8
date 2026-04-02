@@ -1,0 +1,15 @@
+{
+  "short_name": "Dresden",
+  "name": "Dresden Tactical Transceiver",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzM5RkYxNCI+PHBhdGggZD0iTTEyIDJMMiA3djVsMTAgNSAxMC01VjdsLTEwLTV6bTAgMThsLTEwLTV2NWwxMCA1IDEwLTV2LTVsLTEwIDV6Ii8+PC9zdmc+",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0d0e0a",
+  "background_color": "#0d0e0a"
+}
