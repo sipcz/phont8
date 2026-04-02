@@ -153,7 +153,7 @@ function initWS() {
         try { ws.close(); } catch {}
     }
 
-    ws = new WebSocket("wss://phone-ob0c.onrender.com");
+    ws = new WebSocket("wss://phont8.onrender.com");
 
     const lostLinkUI = document.getElementById("lostLinkUI");
 
