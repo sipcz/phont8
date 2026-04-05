@@ -36,15 +36,21 @@ wss.on('connection', (ws, req) => {
         if (msgCount > 25) { ws.close(1008, "Rate Limit Exceeded"); return; }
 
         try {
-            const data = JSON.parse(message);
+            // Безпечне читання даних
+            const data = JSON.parse(message.toString());
             
             if (data.type === 'register') {
-                userNum = data.number || Math.floor(10000 + Math.random() * 90000).toString();
+                // Захист від глюків з "null"
+                if (data.number && data.number !== "null") {
+                    userNum = data.number;
+                } else {
+                    userNum = Math.floor(10000 + Math.random() * 90000).toString();
+                }
                 clients.set(userNum, ws);
                 ws.send(JSON.stringify({ type: 'your_number', number: userNum }));
                 broadcastUserCount();
             } else if (data.type === 'ping') {
-                // Keep-alive
+                // Keep-alive (підтримка з'єднання)
             } else if (data.to) {
                 const targetWs = clients.get(data.to);
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
