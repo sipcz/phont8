@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v128.0 [TITAN DESKTOP FIX]
+ * DRESDEN TACTICAL SYSTEM v129.0 [TITAN HUD]
  * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: RESPONSIVE VIDEO LAYOUT FOR PC AND LAPTOPS
+ * FIX: MILITARY UI REDESIGN (BIGGER BUTTONS, CLEAR PANELS)
  * ============================================================
  */
 
@@ -27,7 +27,8 @@ const DICT = {
         ui_pass: "Пароль доступу", ui_start: "УВІЙТИ", ui_target: "Номер абонента", ui_call: "ДЗВІНОК", ui_sms_btn: "ВІДПРАВИТИ SMS", 
         ui_msg_inp: "Повідомлення...", ui_send: "НАДІСЛАТИ", ui_accept: "ПРИЙНЯТИ", ui_decline: "ВІДХИЛИТИ", ui_hang: "ЗАВЕРШИТИ", 
         ui_photo: "ФОТО", ui_geo: "ГЕО", ui_burn: "ЗНИЩИТИ", ui_pre_sms: "Текст SMS (Офлайн)...", ui_read_sms: "✉️ ВХІДНІ", 
-        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 4 СИМВОЛІВ!"
+        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 4 СИМВОЛІВ!",
+        ui_lbl_target: "🎯 ІДЕНТИФІКАТОР ЦІЛІ", ui_lbl_msg: "✉️ ПАКЕТ ДАНИХ (SMS)"
     },
     'en': {
         online: "ONLINE", offline: "🔴 OFFLINE", offline_err: "❌ OFFLINE", ready: "READY", busy: "📵 BUSY", 
@@ -45,7 +46,8 @@ const DICT = {
         ui_pass: "Passcode", ui_start: "START", ui_target: "Target Number", ui_call: "CALL", ui_sms_btn: "SEND SMS", 
         ui_msg_inp: "Message...", ui_send: "SEND", ui_accept: "ACCEPT", ui_decline: "DECLINE", ui_hang: "HANG UP", 
         ui_photo: "PHOTO", ui_geo: "GEO", ui_burn: "BURN", ui_pre_sms: "SMS Text (Offline)...", ui_read_sms: "✉️ INBOX", 
-        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 4 CHARS!"
+        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 4 CHARS!",
+        ui_lbl_target: "🎯 TARGET IDENTIFIER", ui_lbl_msg: "✉️ DATA PACKET (SMS)"
     }
 };
 function t(key) { return DICT[currentLang][key] || key; }
@@ -53,6 +55,7 @@ function t(key) { return DICT[currentLang][key] || key; }
 function applyLangToUI() {
     const tr = (id, key, isPlaceholder = false) => { const el = document.getElementById(id); if (el) { if (isPlaceholder) el.placeholder = t(key); else el.textContent = t(key); } };
     tr('passInput', 'ui_pass', true); tr('startBtn', 'ui_start'); tr('targetNum', 'ui_target', true); tr('callBtn', 'ui_call'); tr('smsBtn', 'ui_sms_btn'); tr('msgInput', 'ui_msg_inp', true); tr('sendBtn', 'ui_send'); tr('acceptBtn', 'ui_accept'); tr('declineBtn', 'ui_decline'); tr('hangBtn', 'ui_hang'); tr('photoBtn', 'ui_photo'); tr('geoBtn', 'ui_geo'); tr('burnBtn', 'ui_burn'); tr('preCallMsg', 'ui_pre_sms', true);
+    tr('lblTarget', 'ui_lbl_target'); tr('lblMsg', 'ui_lbl_msg');
     
     const vBtn = document.getElementById("videoModeBtn"); if(vBtn) { if (mediaMode === 'video') vBtn.textContent = t('btn_video_on'); else if (mediaMode === 'data') vBtn.textContent = t('btn_chat_only'); else vBtn.textContent = t('btn_audio_only'); }
     const muteBtn = document.getElementById("muteBtn"); if(muteBtn) muteBtn.textContent = isMuted ? t('btn_mute_muted') : t('btn_mute_on');
@@ -69,14 +72,45 @@ function applyLangToUI() {
     const style = document.createElement('style');
     style.id = 'tactical-layout';
     style.innerHTML = `
+        /* 🔥 ТАКТИЧНИЙ HUD (НОВИЙ ДИЗАЙН) */
         .hidden { display: none !important; }
         body, html { height: 100%; overflow: hidden !important; overscroll-behavior: none; background: #000; margin: 0; font-family: monospace; }
+        
+        .dialer-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
+        
+        /* Панель вводу (Термінал) */
+        .tactical-panel { width: 100%; background: #050505; border: 1px solid #1a1a1a; padding: 20px; border-radius: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .input-wrapper { display: flex; flex-direction: column; width: 100%; }
+        .tactical-label { font-size: 11px; color: #39FF14; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px; }
+        .sms-label { color: #00BFFF; }
+        
+        /* Поля вводу */
+        .tactical-input { width: 100%; box-sizing: border-box; background: rgba(57,255,20,0.02); border: 1px solid #333; color: #39FF14; padding: 15px; font-size: 16px; font-family: monospace; outline: none; border-radius: 4px; transition: 0.3s; }
+        .tactical-input:focus { border-color: #39FF14; box-shadow: 0 0 10px rgba(57,255,20,0.2); background: rgba(57,255,20,0.05); }
+        .target-input { font-size: 24px; text-align: center; letter-spacing: 2px; }
+        .sms-input { background: rgba(0,191,255,0.02); color: #00BFFF; border-color: #113344; }
+        .sms-input:focus { border-color: #00BFFF; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
+
+        /* Кнопки */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
+        .tactical-btn { padding: 15px; font-family: monospace; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: 0.2s; box-sizing: border-box; outline: none; }
+        .tactical-btn:active { transform: scale(0.98); }
+        .huge-btn { padding: 20px 10px; font-size: 16px; letter-spacing: 1px; }
+        
+        .primary-btn { background: #001a00; color: #39FF14; border: 2px solid #39FF14; box-shadow: 0 0 10px rgba(57,255,20,0.2); }
+        .primary-btn:active { background: #39FF14; color: #000; }
+        
+        .secondary-btn { background: #00111a; color: #00BFFF; border: 2px solid #00BFFF; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
+        .secondary-btn:active { background: #00BFFF; color: #000; }
+
+        .toggle-btn { background: #0a0a0a; color: #aaa; border: 1px solid #333; font-size: 12px; }
+        .warning-btn { background: #1a1a00; color: #FFD60A; border: 2px solid #FFD60A; box-shadow: 0 0 10px rgba(255,214,10,0.2); }
+        .danger-btn { background: #2a0000; color: #ff3b30; border: 2px solid #ff3b30; }
+
+        /* Відео та чат (ПК Адаптація з Версії 128) */
         #mainApp:not(.hidden) { display: flex !important; flex-direction: column !important; height: 100dvh !important; width: 100vw !important; overflow: hidden !important; }
         .top-bar { flex: 0 0 auto; padding: 5px 10px; z-index: 100; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
         #activeCallUI:not(.hidden) { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; overflow: hidden !important; position: relative !important; }
-        #incomingUI:not(.hidden) { display: flex !important; flex-direction: column !important; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200; }
-        
-        /* 🔥 ФІКС ДЛЯ МОБІЛОК ТА ПК (АДАПТИВНИЙ ДИЗАЙН) */
         #remoteVideo { width: 100% !important; height: 40dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
         #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 80px !important; height: 105px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
         
@@ -86,9 +120,8 @@ function applyLangToUI() {
         }
 
         #chatMessages { flex: 1 1 auto !important; overflow-y: auto !important; padding: 10px !important; background: linear-gradient(180deg, #050505 0%, #000 100%) !important; scroll-behavior: smooth !important; border-top: 1px solid #1a1a1a; }
-        .chat-input { flex: 0 0 auto; padding: 5px; background: #000; border-top: 1px solid #1a1a1a; }
         .call-controls { flex: 0 0 auto; padding: 10px 5px calc(10px + env(safe-area-inset-bottom)) 5px !important; background: #080808; display: flex; flex-wrap: wrap; gap: 5px; justify-content: space-between; }
-        .btn-sub { font-size: 11px !important; padding: 10px 5px !important; flex: 1; }
+        .btn-sub { font-size: 11px !important; padding: 10px 5px !important; flex: 1; background:#111; color:#39FF14; border:1px solid #333; border-radius:4px; font-weight:bold; cursor:pointer;}
         #netBadge { font-size: 9px; padding: 1px 4px; border: 1px solid #00BFFF; color: #00BFFF; border-radius: 2px; margin-left: 10px; vertical-align: middle; display: inline-block; font-weight: bold; }
         #remoteVideo[style*="display: none"] { display: none !important; }
         #localVideo[style*="display: none"] { display: none !important; }
@@ -289,10 +322,7 @@ function setupDC(channel) {
     };
     dc.onmessage = async (e) => {
         const r = await decrypt(JSON.parse(e.data)); if (!r) return; if (r.type === "heartbeat") return;
-        if (r.type === "msg") { 
-            appendMsg(r.txt, "peer", r.isGeo); 
-            if (document.visibilityState === 'hidden') sendPush(t('push_new_msg'), r.txt); 
-        } 
+        if (r.type === "msg") { appendMsg(r.txt, "peer", r.isGeo); if (document.visibilityState === 'hidden') sendPush(t('push_new_msg'), r.txt); } 
         if (r.type === "burn") { document.getElementById("chatMessages").innerHTML = ""; vibrate(50); } 
         if (r.type.startsWith("file_")) handleIncomingData(r);
     };
@@ -301,8 +331,14 @@ function setupDC(channel) {
 function injectSpeakerButton() {
     const controls = document.querySelector(".call-controls"); if (!controls) return;
     if (!document.getElementById("speakerBtn")) {
-        const btn = document.createElement("button"); btn.id = "speakerBtn"; btn.className = "btn-sub"; btn.textContent = t('btn_speaker'); btn.style.cssText = "font-weight: bold; border: 1px solid #FFD60A; color: #FFD60A; flex: 1;"; 
-        btn.onclick = async () => { isEarpieceMode = !isEarpieceMode; btn.textContent = isEarpieceMode ? t('btn_earpiece') : t('btn_speaker'); btn.style.color = isEarpieceMode ? "#00BFFF" : "#39FF14"; btn.style.borderColor = isEarpieceMode ? "#00BFFF" : "#39FF14"; await applyAudioHack(); }; 
+        const btn = document.createElement("button"); btn.id = "speakerBtn"; btn.className = "btn-sub"; btn.textContent = t('btn_speaker'); 
+        btn.onclick = async () => { 
+            isEarpieceMode = !isEarpieceMode; 
+            btn.textContent = isEarpieceMode ? t('btn_earpiece') : t('btn_speaker'); 
+            btn.style.color = isEarpieceMode ? "#00BFFF" : "#39FF14"; 
+            btn.style.borderColor = isEarpieceMode ? "#00BFFF" : "#333"; 
+            await applyAudioHack(); 
+        }; 
         const hangBtn = document.getElementById("hangBtn"); if (hangBtn) controls.insertBefore(btn, hangBtn); else controls.appendChild(btn);
     }
 }
@@ -407,7 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    bind("videoModeBtn", () => { if (mediaMode === 'audio') mediaMode = 'video'; else if (mediaMode === 'video') mediaMode = 'data'; else mediaMode = 'audio'; vibrate(30); const btn = document.getElementById("videoModeBtn"); if (mediaMode === 'video') { btn.textContent = t('btn_video_on'); btn.style.color = "#39FF14"; } else if (mediaMode === 'data') { btn.textContent = t('btn_chat_only'); btn.style.color = "#00BFFF"; } else { btn.textContent = t('btn_audio_only'); btn.style.color = "#FFD60A"; } });
+    bind("videoModeBtn", () => { if (mediaMode === 'audio') mediaMode = 'video'; else if (mediaMode === 'video') mediaMode = 'data'; else mediaMode = 'audio'; vibrate(30); const btn = document.getElementById("videoModeBtn"); if (mediaMode === 'video') { btn.textContent = t('btn_video_on'); btn.style.color = "#39FF14"; btn.style.borderColor = "#39FF14"; } else if (mediaMode === 'data') { btn.textContent = t('btn_chat_only'); btn.style.color = "#00BFFF"; btn.style.borderColor = "#00BFFF"; } else { btn.textContent = t('btn_audio_only'); btn.style.color = "#FFD60A"; btn.style.borderColor = "#333"; } });
     bind("callBtn", initiateLink); bind("hangBtn", () => { if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); }); bind("declineBtn", () => { if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); });
     
     bind("smsBtn", async () => { 
@@ -416,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
         flushSmsQueue(); document.getElementById("preCallMsg").value = ""; setStatus(t('sms_queued'), "var(--warn)"); vibrate(30); 
     });
     
-    const processNextSms = () => { if (smsInbox.length === 0) { document.getElementById("smsOverlay").classList.add("hidden"); document.getElementById("smsContent").textContent = ""; currentSms = null; document.getElementById("readSmsBtn").classList.remove("hidden"); return; } currentSms = smsInbox.shift(); const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; document.getElementById("readSmsBtn").classList.add("hidden"); const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); if (currentSms.from) encrypt({ type: "sms_read_report" }).then(enc => sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc })); };
+    const processNextSms = () => { if (smsInbox.length === 0) { document.getElementById("smsOverlay").classList.add("hidden"); document.getElementById("smsContent").textContent = ""; currentSms = null; document.getElementById("readSmsBtn").classList.add("hidden"); return; } currentSms = smsInbox.shift(); const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; document.getElementById("readSmsBtn").classList.add("hidden"); const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); if (currentSms.from) encrypt({ type: "sms_read_report" }).then(enc => sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc })); };
     bind("readSmsBtn", processNextSms); bind("burnSmsBtn", processNextSms);
     bind("geoBtn", () => { if (!dc) return; setStatus(t('gps_search'), "#FFD60A"); navigator.geolocation.getCurrentPosition(async (p) => { const url = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`; dc.send(JSON.stringify(await encrypt({ type: "msg", txt: url, isGeo: true }))); appendMsg(url, "self", true); setStatus(t('secure_link'), "#39FF14"); }, () => setStatus(t('no_gps'), "red"), { enableHighAccuracy: true }); });
     bind("burnBtn", async () => { document.getElementById("chatMessages").innerHTML = ""; vibrate([50, 50, 50]); if (dc && dc.readyState === "open") dc.send(JSON.stringify(await encrypt({ type: "burn" }))); });
@@ -436,13 +472,13 @@ document.addEventListener("DOMContentLoaded", () => {
     
     bind("sendBtn", async () => { const mi = document.getElementById("msgInput"); if(!mi.value || !dc) return; dc.send(JSON.stringify(await encrypt({ type: "msg", txt: mi.value }))); appendMsg(mi.value, "self"); mi.value = ""; }); bind("photoBtn", () => document.getElementById("fileInp").click());
     const fi = document.getElementById("fileInp"); if(fi) fi.onchange = (e) => { Array.from(e.target.files).forEach(f => { const r = new FileReader(); r.onload = (ev) => { if (f.type.startsWith("image/")) { const img = new Image(); img.onload = () => { const cv = document.createElement("canvas"), ctx = cv.getContext("2d"); let w = img.width, h = img.height; if (w > MAX_IMAGE_DIMENSION) { h *= MAX_IMAGE_DIMENSION/w; w = MAX_IMAGE_DIMENSION; } cv.width = w; cv.height = h; ctx.drawImage(img, 0, 0, w, h); cv.toBlob(b => { sendQueue.push({ blob: b, name: "img.jpg", type: "img" }); if (!isProcessingQueue) processQueue(); }, "image/jpeg", 0.75); }; img.src = ev.target.result; } else { sendQueue.push({ blob: f, name: f.name, type: "file" }); if (!isProcessingQueue) processQueue(); } }; if (f.type.startsWith("image/")) r.readAsDataURL(f); else r.readAsArrayBuffer(f); }); };
-    bind("muteBtn", toggleMute); bind("scrambleBtn", toggleScrambler); bind("relayToggle", () => { isRelayMode = !isRelayMode; const rt = document.getElementById("relayToggle"); rt.textContent = isRelayMode ? t('btn_stealth_on') : t('btn_stealth_off'); rt.style.color = isRelayMode ? "#39FF14" : "#ccc"; });
+    bind("muteBtn", toggleMute); bind("scrambleBtn", toggleScrambler); bind("relayToggle", () => { isRelayMode = !isRelayMode; const rt = document.getElementById("relayToggle"); rt.textContent = isRelayMode ? t('btn_stealth_on') : t('btn_stealth_off'); rt.style.color = isRelayMode ? "#39FF14" : "#ccc"; rt.style.borderColor = isRelayMode ? "#39FF14" : "#333"; });
 });
 
 async function initiateLink() { remoteNum = document.getElementById("targetNum").value.trim(); if (!remoteNum) return; setStatus(t('dialing'), "var(--warn)"); sendWS({ type: "call", to: remoteNum, payload: await encrypt({ type: "call", mode: mediaMode }) }); try { await initPC(isRelayMode); dc = pc.createDataChannel("secureData", { ordered: true }); setupDC(dc); const off = await pc.createOffer(); await pc.setLocalDescription(off); sendWS({ type: "offer", to: remoteNum, payload: await encrypt({ offer: off }) }); handshakeInterval = setInterval(async () => { if (pc && pc.iceConnectionState === "connected") { clearInterval(handshakeInterval); handshakeInterval = null; return; } if (pc && pc.localDescription) sendWS({ type: "offer", to: remoteNum, payload: await encrypt({ offer: pc.localDescription }) }); }, 3000); } catch (e) { setStatus(t('error'), "red"); resetToDialer(); } }
 
 function resetToDialer() {
-    isBusy = false; isEarpieceMode = false; ringtone.pause(); ringtone.currentTime = 0; const sBtn = document.getElementById("speakerBtn"); if (sBtn) { sBtn.textContent = t('btn_speaker'); sBtn.style.color = "#39FF14"; sBtn.style.borderColor = "#FFD60A"; }
+    isBusy = false; isEarpieceMode = false; ringtone.pause(); ringtone.currentTime = 0; const sBtn = document.getElementById("speakerBtn"); if (sBtn) { sBtn.textContent = t('btn_speaker'); sBtn.style.color = "#39FF14"; sBtn.style.borderColor = "#333"; }
     sendQueue = []; isProcessingQueue = false; incomingFile = { name: "", chunks: [], total: 0, received: 0, type: "" };
     if (audioLockInterval) { clearInterval(audioLockInterval); audioLockInterval = null; }
     try { if (window.AndroidAudio && typeof window.AndroidAudio.setProximityEnabled === 'function') { window.AndroidAudio.setProximityEnabled(false); } if (window.AndroidAudio && typeof window.AndroidAudio.setSpeakerphoneOn === 'function') { window.AndroidAudio.setSpeakerphoneOn(true); } } catch(e) {}
