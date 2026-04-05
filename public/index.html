@@ -1,76 +1,83 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DRESDEN TACTICAL v27.1</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DRESDEN TACTICAL</title>
 </head>
-<body>
-<div class="scanlines"></div>
+<body style="background:#000; color:#39FF14; font-family:monospace; margin:0; padding:0; display:flex; flex-direction:column; height:100vh;">
 
-<div id="loginScreen" class="overlay">
-    <div class="box">
-        <div class="drone-logo">TRANSC DRESDEN [V27.1]</div>
-        <input type="password" id="passInput" placeholder="SYSTEM KEY" autocomplete="off">
-        <button id="startBtn" class="btn-main">INITIALIZE SYSTEM</button>
-    </div>
-</div>
-
-<div id="mainApp" class="app-container hidden">
-    <div class="top-bar">
-        <div class="unit-info">UNIT: <span id="myNum" class="green-hero">...</span></div>
-        <div class="net-info">OPS: <span id="userCount" class="green">0</span></div>
-        <div id="status" class="status-tag blink">READY</div>
+    <div id="loginScreen" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+        <h2 style="color:#FFD60A;">DRESDEN OS</h2>
+        <input type="password" id="passInput" placeholder="Passcode" style="padding:10px; text-align:center; background:#111; color:#39FF14; border:1px solid #39FF14; margin-bottom:10px;">
+        <button id="startBtn" style="padding:10px 20px; background:#000; color:#39FF14; border:1px solid #39FF14; font-weight:bold; cursor:pointer;">START</button>
     </div>
 
-    <div id="dialerUI" class="ui-section">
-        <div class="section-label">TARGET ACQUISITION</div>
-        <input type="number" id="targetNum" placeholder="TARGET ID" class="tactical-input">
-        <input type="text" id="preCallMsg" placeholder="OPTIONAL PAGING MESSAGE" class="paging-input">
-        <button id="callBtn" class="btn-main pulse">ESTABLISH LINK</button>
+    <div id="mainApp" class="hidden" style="display:none; flex-direction:column; height:100%;">
+        <div class="top-bar">
+            <span>ID: <b id="myNum">...</b></span>
+            <span id="status" style="color:#FFD60A;">READY</span>
+        </div>
+        
+        <div id="dialerUI" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:10px;">
+            <input type="number" id="targetNum" placeholder="Target Number" style="width:80%; padding:10px; text-align:center; background:#111; color:#39FF14; border:1px solid #39FF14; margin-bottom:10px;">
+            <input type="text" id="preCallMsg" placeholder="SMS Text (Offline)..." style="width:80%; padding:10px; text-align:center; background:#111; color:#00BFFF; border:1px solid #00BFFF; margin-bottom:10px;">
+            
+            <div style="display:flex; gap:10px; width:80%;">
+                <button id="callBtn" style="flex:1; padding:15px; background:#000; color:#39FF14; border:1px solid #39FF14; font-weight:bold;">CALL</button>
+                <button id="smsBtn" style="flex:1; padding:15px; background:#000; color:#00BFFF; border:1px solid #00BFFF; font-weight:bold;">SEND SMS</button>
+            </div>
+            <div style="display:flex; gap:10px; width:80%; margin-top:10px;">
+                <button id="videoModeBtn" style="flex:1; padding:10px; background:#000; color:#FFD60A; border:1px solid #333;">📞 AUDIO ONLY</button>
+                <button id="relayToggle" style="flex:1; padding:10px; background:#000; color:#ccc; border:1px solid #333;">🛰 STEALTH: OFF</button>
+            </div>
+            <button id="readSmsBtn" class="hidden" style="display:none; width:80%; margin-top:15px; padding:10px; border:1px solid #FFD60A; background:#111; color:#FFD60A;">✉️ INBOX</button>
+        </div>
+
+        <div id="incomingUI" class="hidden" style="display:none; flex-direction:column; align-items:center; justify-content:center; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200;">
+            <h2 style="color:#FFD60A;">INCOMING LINK</h2>
+            <h1 id="callerId" style="color:#39FF14;"></h1>
+            <p id="incomingPaging" style="color:#FFD60A; text-align:center; padding:10px;"></p>
+            <div style="display:flex; gap:20px; margin-top:20px;">
+                <button id="acceptBtn" style="padding:15px 30px; background:#000; color:#39FF14; border:2px solid #39FF14; font-weight:bold;">ACCEPT</button>
+                <button id="declineBtn" style="padding:15px 30px; background:#000; color:red; border:2px solid red; font-weight:bold;">DECLINE</button>
+            </div>
+        </div>
+
+        <div id="smsOverlay" class="hidden" style="display:none; position:absolute; top:10%; left:5%; right:5%; background:#111; border:2px solid #00BFFF; padding:15px; z-index:300;">
+            <pre id="smsContent" style="white-space:pre-wrap; word-wrap:break-word; color:#00BFFF;"></pre>
+            <button id="burnSmsBtn" style="width:100%; padding:10px; margin-top:10px; background:#000; color:red; border:1px solid red;">BURN SMS</button>
+        </div>
+
+        <div id="activeCallUI" class="hidden" style="display:none;">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay playsinline muted></video>
+            <audio id="audio" autoplay></audio>
+            
+            <div id="fileProgress" class="hidden" style="display:none; width:100%; padding:5px; background:#111; font-size:10px;">
+                <span id="progText">TRANSFER</span>: <span id="filePercent">0%</span>
+                <div style="width:100%; height:5px; background:#333; margin-top:3px;"><div id="progBar" style="width:0%; height:100%; background:#39FF14;"></div></div>
+            </div>
+
+            <div id="chatMessages"></div>
+
+            <div class="chat-input" style="display:flex;">
+                <input type="text" id="msgInput" placeholder="Message..." style="flex:1; background:#111; color:#39FF14; border:1px solid #333; padding:5px;">
+                <button id="sendBtn" style="background:#111; color:#39FF14; border:1px solid #333; padding:5px 10px;">SEND</button>
+            </div>
+
+            <div class="call-controls">
+                <button id="muteBtn" class="btn-sub" style="color:#39FF14;">🎤 ON</button>
+                <button id="scrambleBtn" class="btn-sub" style="color:#39FF14;">🎭 NORMAL</button>
+                <button id="geoBtn" class="btn-sub" style="color:#FFD60A;">GEO</button>
+                <button id="photoBtn" class="btn-sub" style="color:#00BFFF;">FILE</button>
+                <button id="burnBtn" class="btn-sub" style="color:red; border-color:red;">BURN</button>
+                <button id="hangBtn" class="btn-sub" style="color:red; border-color:red; flex-basis:100%;">HANG UP <span id="callTimer">00:00</span></button>
+            </div>
+            <input type="file" id="fileInp" style="display:none;">
+        </div>
     </div>
 
-    <div id="activeCallUI" class="ui-section hidden">
-        <div class="call-header">
-            CONNECTED TO: <span id="remoteIdDisplay" class="green-hero">...</span>
-        </div>
-        <div id="vizContainer" class="viz-box">
-            <canvas id="localViz"></canvas>
-            <canvas id="remoteViz"></canvas>
-        </div>
-        <div id="chatMessages" class="chat-area"></div>
-        <div id="fileProgress" class="progress-bar hidden"><div id="progBar"></div></div>
-        <div class="chat-controls">
-            <button id="photoBtn" class="btn-side">📎</button>
-            <input type="text" id="msgInput" placeholder="ENCRYPTED MSG...">
-            <button id="sendBtn" class="btn-side">➤</button>
-        </div>
-        <div class="call-controls">
-            <button id="muteBtn" class="btn-sub">🎙 MIC: ON</button>
-            <button id="hangBtn" class="btn-danger">TERMINATE</button>
-        </div>
-    </div>
-</div>
-
-<div id="incomingUI" class="overlay hidden">
-    <div class="box alert-frame">
-        <div class="blink-red">INCOMING SIGNAL</div>
-        <h1 id="callerId" class="green-hero-massive">...</h1>
-        <div id="incomingPaging" class="paging-display"></div>
-        <div class="btn-row">
-            <button id="acceptBtn" class="btn-main">ACCEPT</button>
-            <button id="declineBtn" class="btn-danger">REJECT</button>
-        </div>
-    </div>
-</div>
-
-<div id="lostLinkUI" class="overlay hidden">
-    <div class="box"><div class="blink-red">⚠️ SIGNAL LOST</div><button onclick="location.reload()" class="btn-main">REBOOT</button></div>
-</div>
-
-<audio id="audio" autoplay playsinline></audio>
-<input type="file" id="fileInp" style="display:none" accept="image/*">
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
