@@ -20,7 +20,7 @@ body { background: var(--dark); color: #a1b57d; font-family: 'Courier New', mono
 .hidden { display: none !important; }
 input { font-family: monospace; }
 
-/* ТАКТИЧНИЙ ІНТЕРФЕЙС (ПРОЗОРИЙ З РАМКАМИ) */
+/* ТАКТИЧНИЙ ІНТЕРФЕЙС */
 .dialer-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
 .tactical-panel { width: 100%; background: transparent; border: none; padding: 0; box-shadow: none; }
 
@@ -97,13 +97,22 @@ input { font-family: monospace; }
 .msg.peer { background: rgba(0,191,255,0.1); border: 1px solid rgba(0,191,255,0.3); color: #00BFFF; align-self: flex-start; margin-right: auto; }
 .img-msg img { display: block; margin-top: 5px; }
 
-.incoming-overlay { position: fixed; inset: 0; z-index: 9999; justify-content: center; align-items: center; background: rgba(0,0,0,0.98); }
-.incoming-panel { max-width: 300px; text-align: center; }
+/* ВХІДНИЙ ДЗВІНОК - ДОДАНО ОФОРМЛЕННЯ ВІКНА */
+.incoming-overlay { position: fixed; inset: 0; z-index: 9999; justify-content: center; align-items: center; background: rgba(0,0,0,0.95); }
+.incoming-panel { 
+    max-width: 320px; 
+    text-align: center; 
+    background: #050505; 
+    border: 1px solid #FFD60A; 
+    padding: 25px; 
+    border-radius: 8px; 
+    box-shadow: 0 0 30px rgba(255,214,10,0.15); 
+}
 .incoming-title { color: #FFD60A; margin: 0 0 10px 0; }
 .caller-id-display { font-size: 32px; color: #39FF14; letter-spacing: 3px; margin-bottom: 10px; }
 .incoming-paging-text { font-size: 12px; color: #FFD60A; margin-bottom: 25px; min-height: 15px; }
 
-/* СТИЛІ ВІКНА ЧИТАННЯ SMS (БЕЗ !important ДЛЯ flex) */
+/* СТИЛІ ВІКНА ЧИТАННЯ SMS */
 .sms-overlay-box { 
     position: fixed; 
     top: 50%; 
