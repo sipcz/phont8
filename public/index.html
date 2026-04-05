@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d0e0a">
+    <link rel="manifest" href="manifest.json">
     <title>DRESDEN TACTICAL</title>
     <style>.hidden { display: none !important; }</style>
 </head>
-<body style="background:#000; color:#39FF14; font-family:monospace; margin:0; padding:0; display:flex; flex-direction:column; height:100vh;">
+<body style="background:#000; color:#39FF14; font-family:monospace; margin:0; padding:0; display:flex; flex-direction:column; height:100vh; overflow: hidden;">
 
     <div id="loginScreen" class="screen-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
         <h2 style="color:#FFD60A; letter-spacing: 3px; text-shadow: 0 0 10px #FFD60A; margin-bottom: 30px;">DRESDEN OS</h2>
         <div style="width: 80%; max-width: 350px; display: flex; flex-direction: column; gap: 15px;">
-            <input type="password" id="passInput" class="tactical-input" placeholder="Passcode" style="letter-spacing: 5px; font-size: 24px;">
+            <input type="password" id="passInput" class="tactical-input" placeholder="Passcode" style="letter-spacing: 5px; font-size: 24px; text-align: center;">
             <button id="startBtn" class="tactical-btn primary-btn">START</button>
         </div>
     </div>
@@ -47,7 +49,7 @@
             <button id="readSmsBtn" class="hidden tactical-btn warning-btn" style="margin-top: 25px; width: 100%;">✉️ INBOX</button>
         </div>
 
-        <div id="incomingUI" class="hidden" style="flex-direction:column; align-items:center; justify-content:center; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200;">
+        <div id="incomingUI" class="hidden" style="flex-direction:column; align-items:center; justify-content:center; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.98); z-index:9999;">
             <h2 style="color:#FFD60A; letter-spacing: 2px;">INCOMING LINK</h2>
             <h1 id="callerId" style="color:#39FF14; font-size: 40px; text-shadow: 0 0 20px #39FF14;"></h1>
             <p id="incomingPaging" style="color:#FFD60A; text-align:center; padding:10px; font-size: 16px;"></p>
@@ -57,9 +59,9 @@
             </div>
         </div>
 
-        <div id="smsOverlay" class="hidden" style="position:absolute; top:10%; left:5%; right:5%; background:#050505; border:2px solid #00BFFF; box-shadow: 0 0 30px rgba(0,191,255,0.3); padding:20px; z-index:300; border-radius: 8px;">
-            <pre id="smsContent" style="white-space:pre-wrap; word-wrap:break-word; color:#00BFFF; font-size: 16px;"></pre>
-            <button id="burnSmsBtn" class="tactical-btn danger-btn" style="width:100%; margin-top:20px;">BURN SMS</button>
+        <div id="smsOverlay" class="hidden" style="display:flex; flex-direction:column; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:400px; background:#050505; border:2px solid #00BFFF; box-shadow: 0 0 30px rgba(0,191,255,0.3); padding:20px; z-index:9999; border-radius: 8px; box-sizing: border-box;">
+            <pre id="smsContent" style="white-space:pre-wrap; word-wrap:break-word; color:#00BFFF; font-size: 16px; margin: 0 0 20px 0;"></pre>
+            <button id="burnSmsBtn" class="tactical-btn danger-btn" style="width:100%;">BURN SMS</button>
         </div>
 
         <div id="activeCallUI" class="hidden">
@@ -67,7 +69,7 @@
             <video id="localVideo" autoplay playsinline muted></video>
             <audio id="audio" autoplay></audio>
             
-            <div id="fileProgress" class="hidden" style="width:100%; padding:5px; background:#111; font-size:10px;">
+            <div id="fileProgress" class="hidden" style="width:100%; padding:5px; background:#111; font-size:10px; box-sizing: border-box;">
                 <span id="progText">TRANSFER</span>: <span id="filePercent">0%</span>
                 <div style="width:100%; height:5px; background:#333; margin-top:3px;"><div id="progBar" style="width:0%; height:100%; background:#39FF14;"></div></div>
             </div>
@@ -75,22 +77,4 @@
             <div id="chatMessages"></div>
 
             <div class="chat-input" style="display:flex;">
-                <input type="text" id="msgInput" placeholder="Message..." style="flex:1; background:#111; color:#39FF14; border:1px solid #333; padding:10px; font-family: monospace;">
-                <button id="sendBtn" style="background:#111; color:#39FF14; border:1px solid #333; padding:10px 20px; font-weight: bold;">SEND</button>
-            </div>
-
-            <div class="call-controls">
-                <button id="muteBtn" class="btn-sub" style="color:#39FF14;">🎤 ON</button>
-                <button id="scrambleBtn" class="btn-sub" style="color:#39FF14;">🎭 NORMAL</button>
-                <button id="geoBtn" class="btn-sub" style="color:#FFD60A;">GEO</button>
-                <button id="photoBtn" class="btn-sub" style="color:#00BFFF;">FILE</button>
-                <button id="burnBtn" class="btn-sub" style="color:red; border-color:red;">BURN</button>
-                <button id="hangBtn" class="btn-sub" style="color:red; border-color:red; flex-basis:100%; font-size: 14px !important;">HANG UP <span id="callTimer">00:00</span></button>
-            </div>
-            <input type="file" id="fileInp" style="display:none;">
-        </div>
-    </div>
-
-    <script src="script.js"></script>
-</body>
-</html>
+                <input type="text" id="msgInput" placeholder="Message..." style="flex:1; background:#111; color:#39FF14; border:1px solid #333; padding:10px; font-family
