@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v129.0 [TITAN HUD]
+ * DRESDEN TACTICAL SYSTEM v130.0 [TITAN MODAL FIX]
  * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: MILITARY UI REDESIGN (BIGGER BUTTONS, CLEAR PANELS)
+ * FIX: INCOMING CALL OVERLAY & SMS OVERLAY ALIGNMENT + TRANSLATION
  * ============================================================
  */
 
@@ -28,7 +28,7 @@ const DICT = {
         ui_msg_inp: "Повідомлення...", ui_send: "НАДІСЛАТИ", ui_accept: "ПРИЙНЯТИ", ui_decline: "ВІДХИЛИТИ", ui_hang: "ЗАВЕРШИТИ", 
         ui_photo: "ФОТО", ui_geo: "ГЕО", ui_burn: "ЗНИЩИТИ", ui_pre_sms: "Текст SMS (Офлайн)...", ui_read_sms: "✉️ ВХІДНІ", 
         ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 4 СИМВОЛІВ!",
-        ui_lbl_target: "🎯 ІДЕНТИФІКАТОР ЦІЛІ", ui_lbl_msg: "✉️ ПАКЕТ ДАНИХ (SMS)"
+        ui_lbl_target: "🎯 ІДЕНТИФІКАТОР ЦІЛІ", ui_lbl_msg: "✉️ ПАКЕТ ДАНИХ (SMS)", ui_inc_link: "ВХІДНИЙ ЗВ'ЯЗОК"
     },
     'en': {
         online: "ONLINE", offline: "🔴 OFFLINE", offline_err: "❌ OFFLINE", ready: "READY", busy: "📵 BUSY", 
@@ -47,7 +47,7 @@ const DICT = {
         ui_msg_inp: "Message...", ui_send: "SEND", ui_accept: "ACCEPT", ui_decline: "DECLINE", ui_hang: "HANG UP", 
         ui_photo: "PHOTO", ui_geo: "GEO", ui_burn: "BURN", ui_pre_sms: "SMS Text (Offline)...", ui_read_sms: "✉️ INBOX", 
         ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 4 CHARS!",
-        ui_lbl_target: "🎯 TARGET IDENTIFIER", ui_lbl_msg: "✉️ DATA PACKET (SMS)"
+        ui_lbl_target: "🎯 TARGET IDENTIFIER", ui_lbl_msg: "✉️ DATA PACKET (SMS)", ui_inc_link: "INCOMING LINK"
     }
 };
 function t(key) { return DICT[currentLang][key] || key; }
@@ -57,6 +57,9 @@ function applyLangToUI() {
     tr('passInput', 'ui_pass', true); tr('startBtn', 'ui_start'); tr('targetNum', 'ui_target', true); tr('callBtn', 'ui_call'); tr('smsBtn', 'ui_sms_btn'); tr('msgInput', 'ui_msg_inp', true); tr('sendBtn', 'ui_send'); tr('acceptBtn', 'ui_accept'); tr('declineBtn', 'ui_decline'); tr('hangBtn', 'ui_hang'); tr('photoBtn', 'ui_photo'); tr('geoBtn', 'ui_geo'); tr('burnBtn', 'ui_burn'); tr('preCallMsg', 'ui_pre_sms', true);
     tr('lblTarget', 'ui_lbl_target'); tr('lblMsg', 'ui_lbl_msg');
     
+    // Переклад заголовку вхідного дзвінка
+    const incTitle = document.querySelector('#incomingUI h2'); if (incTitle) incTitle.textContent = t('ui_inc_link');
+
     const vBtn = document.getElementById("videoModeBtn"); if(vBtn) { if (mediaMode === 'video') vBtn.textContent = t('btn_video_on'); else if (mediaMode === 'data') vBtn.textContent = t('btn_chat_only'); else vBtn.textContent = t('btn_audio_only'); }
     const muteBtn = document.getElementById("muteBtn"); if(muteBtn) muteBtn.textContent = isMuted ? t('btn_mute_muted') : t('btn_mute_on');
     const scrBtn = document.getElementById("scrambleBtn"); if(scrBtn) scrBtn.textContent = isScrambled ? t('btn_tactical') : t('btn_normal');
@@ -72,28 +75,24 @@ function applyLangToUI() {
     const style = document.createElement('style');
     style.id = 'tactical-layout';
     style.innerHTML = `
-        /* 🔥 ТАКТИЧНИЙ HUD (НОВИЙ ДИЗАЙН) */
         .hidden { display: none !important; }
         body, html { height: 100%; overflow: hidden !important; overscroll-behavior: none; background: #000; margin: 0; font-family: monospace; }
         
         .dialer-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
         
-        /* Панель вводу (Термінал) */
         .tactical-panel { width: 100%; background: #050505; border: 1px solid #1a1a1a; padding: 20px; border-radius: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .input-wrapper { display: flex; flex-direction: column; width: 100%; }
-        .tactical-label { font-size: 11px; color: #39FF14; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px; }
+        .tactical-label { font-size: 11px; color: #39FF14; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
         .sms-label { color: #00BFFF; }
         
-        /* Поля вводу */
         .tactical-input { width: 100%; box-sizing: border-box; background: rgba(57,255,20,0.02); border: 1px solid #333; color: #39FF14; padding: 15px; font-size: 16px; font-family: monospace; outline: none; border-radius: 4px; transition: 0.3s; }
         .tactical-input:focus { border-color: #39FF14; box-shadow: 0 0 10px rgba(57,255,20,0.2); background: rgba(57,255,20,0.05); }
         .target-input { font-size: 24px; text-align: center; letter-spacing: 2px; }
         .sms-input { background: rgba(0,191,255,0.02); color: #00BFFF; border-color: #113344; }
         .sms-input:focus { border-color: #00BFFF; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
 
-        /* Кнопки */
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
-        .tactical-btn { padding: 15px; font-family: monospace; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: 0.2s; box-sizing: border-box; outline: none; }
+        .tactical-btn { padding: 15px; font-family: monospace; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: 0.2s; box-sizing: border-box; outline: none; display: flex; align-items: center; justify-content: center; text-align: center; }
         .tactical-btn:active { transform: scale(0.98); }
         .huge-btn { padding: 20px 10px; font-size: 16px; letter-spacing: 1px; }
         
@@ -107,10 +106,43 @@ function applyLangToUI() {
         .warning-btn { background: #1a1a00; color: #FFD60A; border: 2px solid #FFD60A; box-shadow: 0 0 10px rgba(255,214,10,0.2); }
         .danger-btn { background: #2a0000; color: #ff3b30; border: 2px solid #ff3b30; }
 
-        /* Відео та чат (ПК Адаптація з Версії 128) */
         #mainApp:not(.hidden) { display: flex !important; flex-direction: column !important; height: 100dvh !important; width: 100vw !important; overflow: hidden !important; }
         .top-bar { flex: 0 0 auto; padding: 5px 10px; z-index: 100; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
         #activeCallUI:not(.hidden) { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; overflow: hidden !important; position: relative !important; }
+        
+        /* 🔥 БРОНЕБІЙНИЙ ФІКС ВІКНА ДЗВІНКА ТА СМС (Жорстке центрування та чорний фон) */
+        #incomingUI:not(.hidden) { 
+            display: flex !important; 
+            flex-direction: column !important; 
+            position: fixed !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            width: 100vw !important; 
+            height: 100dvh !important; 
+            background: rgba(0,0,0,0.98) !important; 
+            z-index: 9999 !important; 
+            justify-content: center !important; 
+            align-items: center !important; 
+        }
+        
+        #smsOverlay:not(.hidden) {
+            display: flex !important;
+            flex-direction: column !important;
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 90% !important;
+            max-width: 400px !important;
+            background: #050505 !important;
+            border: 2px solid #00BFFF !important;
+            box-shadow: 0 0 30px rgba(0,191,255,0.3) !important;
+            padding: 20px !important;
+            z-index: 9999 !important;
+            border-radius: 8px !important;
+            box-sizing: border-box !important;
+        }
+
         #remoteVideo { width: 100% !important; height: 40dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
         #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 80px !important; height: 105px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
         
