@@ -1,76 +1,71 @@
-import express from "express";
-import { WebSocketServer } from "ws";
-import path from "path";
-import { fileURLToPath } from "url";
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const helmet = require('helmet');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
+app.use(helmet()); // Захист HTTP-заголовків від хакерів
 
-app.use(express.static(path.join(__dirname, "public")));
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+const server = http.createServer(app);
+// Ліміт на розмір повідомлення: 50 КБ (Захист від переповнення пам'яті)
+const wss = new WebSocket.Server({ server, maxPayload: 50 * 1024 });
 
-const server = app.listen(process.env.PORT || 3000, () => console.log("🚀 DRESDEN BASE ONLINE"));
-
-const wss = new WebSocketServer({ server });
 const clients = new Map();
 
-function broadcastUserCount() {
-    const msg = JSON.stringify({ type: "user_count", count: clients.size });
-    wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
-}
+wss.on('connection', (ws, req) => {
+    let userNum = null;
+    let msgCount = 0;
 
-wss.on("connection", (ws) => {
-    ws.isAlive = true;
-    ws.on("pong", () => ws.isAlive = true);
+    // Анти-Спам: Обнулення лічильника щосекунди
+    const rateLimit = setInterval(() => { msgCount = 0; }, 1000);
 
-    ws.on("message", (raw) => {
+    ws.on('message', (message) => {
+        msgCount++;
+        // Якщо більше 25 пакетів на секунду - обриваємо з'єднання (Захист від DDoS)
+        if (msgCount > 25) { ws.close(1008, "Rate Limit Exceeded"); return; }
+
         try {
-            const data = JSON.parse(raw);
-            if (data.type === "register") {
-                let num = data.number || String(Math.floor(100000 + Math.random() * 900000));
-                
-                // Видаляємо фантомні підключення з тим самим ID
-                if (clients.has(num)) {
-                    const oldWs = clients.get(num);
-                    if (oldWs !== ws) {
-                        oldWs.number = null; 
-                        oldWs.terminate(); 
-                        clients.delete(num);
-                    }
-                }
-
-                ws.number = num;
-                clients.set(num, ws);
-                ws.send(JSON.stringify({ type: "your_number", number: num }));
+            const data = JSON.parse(message);
+            
+            if (data.type === 'register') {
+                userNum = data.number || Math.floor(10000 + Math.random() * 90000).toString();
+                clients.set(userNum, ws);
+                ws.send(JSON.stringify({ type: 'your_number', number: userNum }));
                 broadcastUserCount();
-                return;
-            }
-
-            const target = clients.get(data.to);
-            if (!target || target.readyState !== 1) {
-                if (data.type === "call" || data.type === "offer") {
-                    ws.send(JSON.stringify({ type: "peer_offline", target: data.to }));
+            } else if (data.type === 'ping') {
+                // Keep-alive для підтримки з'єднання
+            } else if (data.to) {
+                const targetWs = clients.get(data.to);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    data.from = userNum;
+                    targetWs.send(JSON.stringify(data));
+                } else if (data.type !== 'ice_batch' && data.type !== 'ping' && data.type !== 'heartbeat') {
+                    // Якщо абонент не в мережі
+                    ws.send(JSON.stringify({ type: 'peer_offline', to: data.to }));
                 }
-                return;
             }
-            target.send(JSON.stringify({ ...data, from: ws.number }));
-        } catch (e) {}
+        } catch (e) {
+            // Ігноруємо невалідний JSON
+        }
     });
 
-    ws.on("close", () => {
-        if (ws.number) { clients.delete(ws.number); broadcastUserCount(); }
+    ws.on('close', () => {
+        clearInterval(rateLimit);
+        if (userNum) {
+            clients.delete(userNum);
+            broadcastUserCount();
+        }
     });
 });
 
-// Watchdog: очищення мертвих сокетів кожні 30 сек
-setInterval(() => {
-    wss.clients.forEach(ws => {
-        if (!ws.isAlive) {
-            if (ws.number) clients.delete(ws.number);
-            return ws.terminate();
+function broadcastUserCount() {
+    const count = clients.size;
+    clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'user_count', count }));
         }
-        ws.isAlive = false;
-        ws.ping();
     });
-}, 30000);
+}
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`DRESDEN Server running on port ${PORT}`));
