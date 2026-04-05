@@ -160,7 +160,7 @@ const SystemIntel = {
         if (this.networkType.includes('2g') || this.networkType.includes('3g')) return { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } }; 
         return { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } }; 
     },
-    getCallTimeout() { return (this.networkType.includes('2g')) ? 45000 : 20000; }
+    getCallTimeout() { return (this.networkType.includes('2g')) ? 25000 : 15000; }
 };
 
 function sendPush(title, message) {
@@ -221,7 +221,7 @@ function initWS() {
         if(smsQueueInterval) clearInterval(smsQueueInterval); smsQueueInterval = setInterval(flushSmsQueue, 30000); 
         flushSmsQueue(); 
     };
-    ws.onclose = () => { setStatus(t('offline'), "red"); setTimeout(initWS, 3000); };
+    ws.onclose = () => { setStatus(t('offline'), "red"); if (isBusy || pc) resetToDialer(); setTimeout(initWS, 3000); };
     ws.onmessage = async (e) => {
         let d;
         try { d = JSON.parse(e.data); } catch(err) { return; }
@@ -485,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
             await initPC(isRelayMode); pc.ondatachannel = (e) => setupDC(e.channel); await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer)); 
             iceQueue.forEach(c => pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{})); iceQueue = [];
             const ans = await pc.createAnswer(); await pc.setLocalDescription(ans); sendWS({ type: "answer", to: remoteNum, payload: await encrypt({ answer: ans }) }); 
-            handshakeInterval = setInterval(async () => { if (pc && pc.iceConnectionState === "connected") { clearInterval(handshakeInterval); handshakeInterval = null; return; } if (pc && pc.localDescription) sendWS({ type: "answer", to: remoteNum, payload: await encrypt({ answer: pc.localDescription }) }); }, 3000); 
+            handshakeInterval = setInterval(async () => { if (!ws || ws.readyState !== WebSocket.OPEN) { clearInterval(handshakeInterval); handshakeInterval = null; resetToDialer(); return; } if (pc && pc.iceConnectionState === "connected") { clearInterval(handshakeInterval); handshakeInterval = null; return; } if (pc && pc.localDescription) sendWS({ type: "answer", to: remoteNum, payload: await encrypt({ answer: pc.localDescription }) }); }, 3000); 
         } catch (e) { setStatus(t('failed'), "red"); setTimeout(resetToDialer, 3000); } 
     });
     
@@ -494,7 +494,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bind("muteBtn", toggleMute); bind("scrambleBtn", toggleScrambler); bind("relayToggle", () => { isRelayMode = !isRelayMode; const rt = document.getElementById("relayToggle"); rt.textContent = isRelayMode ? t('btn_stealth_on') : t('btn_stealth_off'); rt.style.color = isRelayMode ? "#39FF14" : "#ccc"; rt.style.borderColor = isRelayMode ? "#39FF14" : "#333"; });
 });
 
-async function initiateLink() { remoteNum = document.getElementById("targetNum").value.trim(); if (!remoteNum) return; setStatus(t('dialing'), "var(--warn)"); sendWS({ type: "call", to: remoteNum, payload: await encrypt({ type: "call", mode: mediaMode }) }); try { await initPC(isRelayMode); dc = pc.createDataChannel("secureData", { ordered: true }); setupDC(dc); const off = await pc.createOffer(); await pc.setLocalDescription(off); sendWS({ type: "offer", to: remoteNum, payload: await encrypt({ offer: off }) }); handshakeInterval = setInterval(async () => { if (pc && pc.iceConnectionState === "connected") { clearInterval(handshakeInterval); handshakeInterval = null; return; } if (pc && pc.localDescription) sendWS({ type: "offer", to: remoteNum, payload: await encrypt({ offer: pc.localDescription }) }); }, 3000); } catch (e) { setStatus(t('error'), "red"); resetToDialer(); } }
+async function initiateLink() { remoteNum = document.getElementById("targetNum").value.trim(); if (!remoteNum) return; setStatus(t('dialing'), "var(--warn)"); sendWS({ type: "call", to: remoteNum, payload: await encrypt({ type: "call", mode: mediaMode }) }); try { await initPC(isRelayMode); dc = pc.createDataChannel("secureData", { ordered: true }); setupDC(dc); const off = await pc.createOffer(); await pc.setLocalDescription(off); sendWS({ type: "offer", to: remoteNum, payload: await encrypt({ offer: off }) }); handshakeInterval = setInterval(async () => { if (!ws || ws.readyState !== WebSocket.OPEN) { clearInterval(handshakeInterval); handshakeInterval = null; resetToDialer(); return; } if (pc && pc.iceConnectionState === "connected") { clearInterval(handshakeInterval); handshakeInterval = null; return; } if (pc && pc.localDescription) sendWS({ type: "offer", to: remoteNum, payload: await encrypt({ offer: pc.localDescription }) }); }, 3000); } catch (e) { setStatus(t('error'), "red"); resetToDialer(); } }
 
 function resetToDialer() {
     isBusy = false; isEarpieceMode = false; ringtone.pause(); ringtone.currentTime = 0; const sBtn = document.getElementById("speakerBtn"); if (sBtn) { sBtn.textContent = t('btn_speaker'); sBtn.style.color = "#39FF14"; sBtn.style.borderColor = "#333"; }
@@ -516,3 +516,4 @@ function resetToDialer() {
 function appendMsg(t, cls, isGeo = false) { const chat = document.getElementById("chatMessages"); if(!chat) return; const d = document.createElement("div"); d.className = `msg ${cls}`; if (isGeo || t.includes("maps?q=")) { const link = t.match(/https?:\/\/[^\s]+/)?.[0] || t; d.classList.add("geo-msg"); d.innerHTML = `📍 <a href="${link}" target="_blank" style="color:inherit;text-decoration:none;font-weight:bold;">TACTICAL GEOTAG</a>`; } else { d.textContent = t; } chat.appendChild(d); chat.scrollTop = chat.scrollHeight; }
 function appendImage(url, cls) { const chat = document.getElementById("chatMessages"); if(!chat) return; const d = document.createElement("div"); d.className = `msg ${cls} img-msg`; const img = new Image(); img.src = url; img.style.maxWidth = "200px"; img.style.borderRadius = "8px"; img.onclick = () => window.open(url, '_blank'); d.appendChild(img); chat.appendChild(d); chat.scrollTop = chat.scrollHeight; }
 function startCallTimer() { let s = 0; callTimerInterval = setInterval(() => { s++; const m = String(Math.floor(s/60)).padStart(2,"0"), sec = String(s%60).padStart(2,"0"); const el = document.getElementById("callTimer"); if(el) el.textContent = `${m}:${sec}`; }, 1000); }
+
