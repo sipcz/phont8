@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v125.0 [TITAN PUSH FIX]
+ * DRESDEN TACTICAL SYSTEM v126.0 [TITAN PUSH RESTORED]
  * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: PUSH NOTIFICATIONS RESTORED (SYNC PERMISSION FIX)
+ * FIX: REVERTED NOTIFICATION API TO v120 STANDARD (FIXED BLOCK)
  * ============================================================
  */
 
@@ -138,14 +138,14 @@ const SystemIntel = {
     getCallTimeout() { return (this.networkType.includes('2g')) ? 45000 : 20000; }
 };
 
-// 🔥 ФІКС ПУШІВ: Додана вібрація для надійності
+// 🔥 ФІКС ПУШІВ: Відкат до перевіреної версії 120.0, яка ідеально працювала на всіх пристроях
 function sendPush(title, message) {
-    try { 
-        if (window.AndroidAudio && typeof window.AndroidAudio.showNotification === 'function') { 
-            window.AndroidAudio.showNotification(title, message); 
-        } else if (typeof Notification !== 'undefined' && Notification.permission === "granted") { 
-            new Notification(title, { body: message, vibrate: [200, 100, 200] }); 
-        } 
+    try {
+        if (window.AndroidAudio && typeof window.AndroidAudio.showNotification === 'function') {
+            window.AndroidAudio.showNotification(title, message);
+        } else if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
+            new Notification(title, { body: message });
+        }
     } catch(e) {}
 }
 
@@ -200,7 +200,10 @@ function initWS() {
                 let modeText = t('mode_audio'); if (d.mode === 'video') modeText = t('mode_video'); else if (d.mode === 'data') modeText = t('mode_data');
                 const incMsg = document.getElementById("incomingPaging"); if (incMsg) { incMsg.textContent = `[${modeText}]` + (d.msg ? ` | MSG: ${d.msg}` : ""); incMsg.style.color = (d.mode === 'data') ? "#00BFFF" : "#FFD60A"; }
                 document.getElementById("incomingUI").classList.remove("hidden");
-                sendPush(t('push_inc_call'), `${t('push_from')}: ${d.from} (${modeText})`);
+                
+                // Пуш при виклику (навіть якщо ти в іншій вкладці)
+                if (document.visibilityState === 'hidden') sendPush(t('push_inc_call'), `${t('push_from')}: ${d.from} (${modeText})`);
+                
                 if (d.mode === 'data') { vibrate([100, 50, 100]); } else { vibrate([500, 100, 500]); ringtone.play().catch(()=>{}); } break;
             case "offer": pendingOffer = d.offer; break;
             case "answer": 
@@ -211,7 +214,11 @@ function initWS() {
             case "sms": 
                 smsInbox.push({ txt: d.txt, from: d.from }); document.getElementById("smsOverlay").classList.remove("hidden"); 
                 const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.remove("hidden"); rBtn.textContent = `${t('ui_read_sms')} (${smsInbox.length})`; } 
-                sendPush(`${t('push_sms_from')} ${d.from}`, d.txt); vibrate(200); 
+                
+                // Пуш при SMS
+                if (document.visibilityState === 'hidden') sendPush(`${t('push_sms_from')} ${d.from}`, d.txt);
+                
+                vibrate(200); 
                 if (d.smsId) sendWS({ type: "sms_ack", to: d.from, payload: await encrypt({ type: "sms_ack", smsId: d.smsId }) }); break;
             case "sms_ack":
                 pendingSmsList = pendingSmsList.filter(s => s.id !== d.smsId); localStorage.setItem('dresden_sms_queue', JSON.stringify(pendingSmsList));
@@ -276,7 +283,11 @@ function setupDC(channel) {
     };
     dc.onmessage = async (e) => {
         const r = await decrypt(JSON.parse(e.data)); if (!r) return; if (r.type === "heartbeat") return;
-        if (r.type === "msg") { appendMsg(r.txt, "peer", r.isGeo); if (document.visibilityState === 'hidden') sendPush(t('push_new_msg'), r.txt); } 
+        if (r.type === "msg") { 
+            appendMsg(r.txt, "peer", r.isGeo); 
+            // Пуш при повідомленні в чаті
+            if (document.visibilityState === 'hidden') sendPush(t('push_new_msg'), r.txt); 
+        } 
         if (r.type === "burn") { document.getElementById("chatMessages").innerHTML = ""; vibrate(50); } 
         if (r.type.startsWith("file_")) handleIncomingData(r);
     };
@@ -361,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     bind("startBtn", async () => { 
         
-        // 🔥 ФІКС ПУШІВ: Запит дозволу рівно в момент кліку користувача (До шифрування!), інакше браузер заблокує
         try { 
             if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") { 
                 Notification.requestPermission(); 
