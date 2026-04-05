@@ -2,17 +2,24 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const helmet = require('helmet');
+const path = require('path');
 
 const app = express();
 
-// ФІКС БЕЗПЕКИ: Вимикаємо CSP в Helmet, щоб він не блокував наш інтерфейс та WebRTC
+// ФІКС БЕЗПЕКИ: Вимикаємо CSP, щоб він не блокував WebRTC
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// ФІКС "Cannot GET /": Кажемо серверу віддавати файли index.html та script.js
-app.use(express.static(__dirname));
+// 🔥 ФІКС ПАПКИ: Кажемо серверу шукати всі файли (script.js, CSS) у папці "public"
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 🔥 БРОНЕБІЙНИЙ РОУТИНГ: Примусово віддаємо index.html з папки "public"
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 const server = http.createServer(app);
-// Ліміт на розмір повідомлення: 50 КБ (Захист від переповнення пам'яті)
+
+// Ліміт на розмір повідомлення: 50 КБ
 const wss = new WebSocket.Server({ server, maxPayload: 50 * 1024 });
 
 const clients = new Map();
@@ -21,12 +28,11 @@ wss.on('connection', (ws, req) => {
     let userNum = null;
     let msgCount = 0;
 
-    // Анти-Спам: Обнулення лічильника щосекунди
+    // Анти-Спам
     const rateLimit = setInterval(() => { msgCount = 0; }, 1000);
 
     ws.on('message', (message) => {
         msgCount++;
-        // Якщо більше 25 пакетів на секунду - обриваємо з'єднання (Захист від DDoS)
         if (msgCount > 25) { ws.close(1008, "Rate Limit Exceeded"); return; }
 
         try {
@@ -38,14 +44,13 @@ wss.on('connection', (ws, req) => {
                 ws.send(JSON.stringify({ type: 'your_number', number: userNum }));
                 broadcastUserCount();
             } else if (data.type === 'ping') {
-                // Keep-alive для підтримки з'єднання
+                // Keep-alive
             } else if (data.to) {
                 const targetWs = clients.get(data.to);
                 if (targetWs && targetWs.readyState === WebSocket.OPEN) {
                     data.from = userNum;
                     targetWs.send(JSON.stringify(data));
                 } else if (data.type !== 'ice_batch' && data.type !== 'ping' && data.type !== 'heartbeat') {
-                    // Якщо абонент не в мережі
                     ws.send(JSON.stringify({ type: 'peer_offline', to: data.to }));
                 }
             }
