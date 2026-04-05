@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v126.0 [TITAN PUSH RESTORED]
+ * DRESDEN TACTICAL SYSTEM v128.0 [TITAN DESKTOP FIX]
  * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: REVERTED NOTIFICATION API TO v120 STANDARD (FIXED BLOCK)
+ * FIX: RESPONSIVE VIDEO LAYOUT FOR PC AND LAPTOPS
  * ============================================================
  */
 
@@ -75,8 +75,16 @@ function applyLangToUI() {
         .top-bar { flex: 0 0 auto; padding: 5px 10px; z-index: 100; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
         #activeCallUI:not(.hidden) { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; overflow: hidden !important; position: relative !important; }
         #incomingUI:not(.hidden) { display: flex !important; flex-direction: column !important; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200; }
-        #remoteVideo { width: 100% !important; height: 38dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
-        #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 75px !important; height: 100px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
+        
+        /* 🔥 ФІКС ДЛЯ МОБІЛОК ТА ПК (АДАПТИВНИЙ ДИЗАЙН) */
+        #remoteVideo { width: 100% !important; height: 40dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
+        #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 80px !important; height: 105px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
+        
+        @media (min-width: 768px) {
+            #remoteVideo { height: 70dvh !important; object-fit: contain !important; }
+            #localVideo { width: 160px !important; height: 120px !important; }
+        }
+
         #chatMessages { flex: 1 1 auto !important; overflow-y: auto !important; padding: 10px !important; background: linear-gradient(180deg, #050505 0%, #000 100%) !important; scroll-behavior: smooth !important; border-top: 1px solid #1a1a1a; }
         .chat-input { flex: 0 0 auto; padding: 5px; background: #000; border-top: 1px solid #1a1a1a; }
         .call-controls { flex: 0 0 auto; padding: 10px 5px calc(10px + env(safe-area-inset-bottom)) 5px !important; background: #080808; display: flex; flex-wrap: wrap; gap: 5px; justify-content: space-between; }
@@ -99,6 +107,7 @@ const stunPool = [
 ];
 
 const turnPool = [
+    { urls: "turn:free.expressturn.com:3478", username: "000000002090663353", credential: "VSl5ppuDRv7VUw9hCD7UZRfjyZU=" },
     { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" },
     { urls: "turn:global.relay.metered.ca:443?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" },
     { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" },
@@ -138,7 +147,6 @@ const SystemIntel = {
     getCallTimeout() { return (this.networkType.includes('2g')) ? 45000 : 20000; }
 };
 
-// 🔥 ФІКС ПУШІВ: Відкат до перевіреної версії 120.0, яка ідеально працювала на всіх пристроях
 function sendPush(title, message) {
     try {
         if (window.AndroidAudio && typeof window.AndroidAudio.showNotification === 'function') {
@@ -201,7 +209,6 @@ function initWS() {
                 const incMsg = document.getElementById("incomingPaging"); if (incMsg) { incMsg.textContent = `[${modeText}]` + (d.msg ? ` | MSG: ${d.msg}` : ""); incMsg.style.color = (d.mode === 'data') ? "#00BFFF" : "#FFD60A"; }
                 document.getElementById("incomingUI").classList.remove("hidden");
                 
-                // Пуш при виклику (навіть якщо ти в іншій вкладці)
                 if (document.visibilityState === 'hidden') sendPush(t('push_inc_call'), `${t('push_from')}: ${d.from} (${modeText})`);
                 
                 if (d.mode === 'data') { vibrate([100, 50, 100]); } else { vibrate([500, 100, 500]); ringtone.play().catch(()=>{}); } break;
@@ -215,7 +222,6 @@ function initWS() {
                 smsInbox.push({ txt: d.txt, from: d.from }); document.getElementById("smsOverlay").classList.remove("hidden"); 
                 const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.remove("hidden"); rBtn.textContent = `${t('ui_read_sms')} (${smsInbox.length})`; } 
                 
-                // Пуш при SMS
                 if (document.visibilityState === 'hidden') sendPush(`${t('push_sms_from')} ${d.from}`, d.txt);
                 
                 vibrate(200); 
@@ -285,7 +291,6 @@ function setupDC(channel) {
         const r = await decrypt(JSON.parse(e.data)); if (!r) return; if (r.type === "heartbeat") return;
         if (r.type === "msg") { 
             appendMsg(r.txt, "peer", r.isGeo); 
-            // Пуш при повідомленні в чаті
             if (document.visibilityState === 'hidden') sendPush(t('push_new_msg'), r.txt); 
         } 
         if (r.type === "burn") { document.getElementById("chatMessages").innerHTML = ""; vibrate(50); } 
