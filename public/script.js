@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v130.0 [TITAN MODAL FIX]
+ * DRESDEN TACTICAL SYSTEM v131.0 [TITAN LOGIN ARMOR]
  * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: INCOMING CALL OVERLAY & SMS OVERLAY ALIGNMENT + TRANSLATION
+ * FIX: BULLETPROOF LOGIN TRANSITION & CRYPTO FAIL-SAFE
  * ============================================================
  */
 
@@ -57,7 +57,6 @@ function applyLangToUI() {
     tr('passInput', 'ui_pass', true); tr('startBtn', 'ui_start'); tr('targetNum', 'ui_target', true); tr('callBtn', 'ui_call'); tr('smsBtn', 'ui_sms_btn'); tr('msgInput', 'ui_msg_inp', true); tr('sendBtn', 'ui_send'); tr('acceptBtn', 'ui_accept'); tr('declineBtn', 'ui_decline'); tr('hangBtn', 'ui_hang'); tr('photoBtn', 'ui_photo'); tr('geoBtn', 'ui_geo'); tr('burnBtn', 'ui_burn'); tr('preCallMsg', 'ui_pre_sms', true);
     tr('lblTarget', 'ui_lbl_target'); tr('lblMsg', 'ui_lbl_msg');
     
-    // Переклад заголовку вхідного дзвінка
     const incTitle = document.querySelector('#incomingUI h2'); if (incTitle) incTitle.textContent = t('ui_inc_link');
 
     const vBtn = document.getElementById("videoModeBtn"); if(vBtn) { if (mediaMode === 'video') vBtn.textContent = t('btn_video_on'); else if (mediaMode === 'data') vBtn.textContent = t('btn_chat_only'); else vBtn.textContent = t('btn_audio_only'); }
@@ -110,38 +109,8 @@ function applyLangToUI() {
         .top-bar { flex: 0 0 auto; padding: 5px 10px; z-index: 100; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
         #activeCallUI:not(.hidden) { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; overflow: hidden !important; position: relative !important; }
         
-        /* 🔥 БРОНЕБІЙНИЙ ФІКС ВІКНА ДЗВІНКА ТА СМС (Жорстке центрування та чорний фон) */
-        #incomingUI:not(.hidden) { 
-            display: flex !important; 
-            flex-direction: column !important; 
-            position: fixed !important; 
-            top: 0 !important; 
-            left: 0 !important; 
-            width: 100vw !important; 
-            height: 100dvh !important; 
-            background: rgba(0,0,0,0.98) !important; 
-            z-index: 9999 !important; 
-            justify-content: center !important; 
-            align-items: center !important; 
-        }
-        
-        #smsOverlay:not(.hidden) {
-            display: flex !important;
-            flex-direction: column !important;
-            position: fixed !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            width: 90% !important;
-            max-width: 400px !important;
-            background: #050505 !important;
-            border: 2px solid #00BFFF !important;
-            box-shadow: 0 0 30px rgba(0,191,255,0.3) !important;
-            padding: 20px !important;
-            z-index: 9999 !important;
-            border-radius: 8px !important;
-            box-sizing: border-box !important;
-        }
+        #incomingUI:not(.hidden) { display: flex !important; flex-direction: column !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100dvh !important; background: rgba(0,0,0,0.98) !important; z-index: 9999 !important; justify-content: center !important; align-items: center !important; }
+        #smsOverlay:not(.hidden) { display: flex !important; flex-direction: column !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 90% !important; max-width: 400px !important; background: #050505 !important; border: 2px solid #00BFFF !important; box-shadow: 0 0 30px rgba(0,191,255,0.3) !important; padding: 20px !important; z-index: 9999 !important; border-radius: 8px !important; box-sizing: border-box !important; }
 
         #remoteVideo { width: 100% !important; height: 40dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
         #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 80px !important; height: 105px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
@@ -230,7 +199,19 @@ function b642buf(b64) { const s = window.atob(b64); const bytes = new Uint8Array
 async function deriveSessionKey(p) {
     if (p === DURESS_KEY) { localStorage.clear(); sessionStorage.clear(); window.location.replace("https://google.com"); return; }
     setStatus(t('keygen_active'), "#FFD60A");
-    try { const enc = new TextEncoder(); const mat = await crypto.subtle.importKey("raw", enc.encode(p), "PBKDF2", false, ["deriveKey"]); cryptoKey = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(CRYPTO_SALT), iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, mat, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); isSystemInitialized = true; SystemIntel.init(); injectSpeakerButton(); setStatus(t('enc_active')); } catch (e) { setStatus(t('keygen_fail'), "red"); }
+    try { 
+        if (!crypto || !crypto.subtle) throw new Error("NO_HTTPS"); // 🔥 ДЕТЕКТОР БЕЗПЕКИ
+        const enc = new TextEncoder(); 
+        const mat = await crypto.subtle.importKey("raw", enc.encode(p), "PBKDF2", false, ["deriveKey"]); 
+        cryptoKey = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(CRYPTO_SALT), iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, mat, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); 
+        isSystemInitialized = true; 
+        SystemIntel.init(); 
+        injectSpeakerButton(); 
+        setStatus(t('enc_active')); 
+    } catch (e) { 
+        setStatus(t('keygen_fail'), "red"); 
+        alert("🛡️ ПОМИЛКА БЕЗПЕКИ: Шифрування заблоковано браузером! Переконайтесь, що сайт відкрито через захищене з'єднання (HTTPS).");
+    }
 }
 
 async function encrypt(payload) { if (!cryptoKey) return null; const iv = crypto.getRandomValues(new Uint8Array(12)); const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cryptoKey, new TextEncoder().encode(JSON.stringify(payload))); return { iv: buf2b64(iv), data: buf2b64(enc) }; }
@@ -272,7 +253,12 @@ function initWS() {
                 isBusy = true; remoteNum = d.from; document.getElementById("callerId").textContent = d.from;
                 let modeText = t('mode_audio'); if (d.mode === 'video') modeText = t('mode_video'); else if (d.mode === 'data') modeText = t('mode_data');
                 const incMsg = document.getElementById("incomingPaging"); if (incMsg) { incMsg.textContent = `[${modeText}]` + (d.msg ? ` | MSG: ${d.msg}` : ""); incMsg.style.color = (d.mode === 'data') ? "#00BFFF" : "#FFD60A"; }
-                document.getElementById("incomingUI").classList.remove("hidden");
+                
+                const incUi = document.getElementById("incomingUI");
+                if(incUi) {
+                    incUi.classList.remove("hidden");
+                    incUi.style.setProperty("display", "flex", "important");
+                }
                 
                 if (document.visibilityState === 'hidden') sendPush(t('push_inc_call'), `${t('push_from')}: ${d.from} (${modeText})`);
                 
@@ -284,8 +270,13 @@ function initWS() {
                 if (d.cands) { d.cands.forEach(c => { if (pc && pc.remoteDescription) { pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}); } else { iceQueue.push(c); } }); } break;
             case "hangup": resetToDialer(); break;
             case "sms": 
-                smsInbox.push({ txt: d.txt, from: d.from }); document.getElementById("smsOverlay").classList.remove("hidden"); 
-                const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.remove("hidden"); rBtn.textContent = `${t('ui_read_sms')} (${smsInbox.length})`; } 
+                smsInbox.push({ txt: d.txt, from: d.from }); 
+                const smsUi = document.getElementById("smsOverlay");
+                if (smsUi) {
+                    smsUi.classList.remove("hidden");
+                    smsUi.style.setProperty("display", "flex", "important");
+                }
+                const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.remove("hidden"); rBtn.style.setProperty("display", "flex", "important"); rBtn.textContent = `${t('ui_read_sms')} (${smsInbox.length})`; } 
                 
                 if (document.visibilityState === 'hidden') sendPush(`${t('push_sms_from')} ${d.from}`, d.txt);
                 
@@ -349,7 +340,14 @@ async function initPC(relay = false) {
 
 function setupDC(channel) {
     dc = channel; dc.onopen = () => { 
-        setStatus(t('secure_link'), "#39FF14"); document.getElementById("dialerUI").classList.add("hidden"); document.getElementById("activeCallUI").classList.remove("hidden"); document.getElementById("remoteIdDisplay").textContent = remoteNum; 
+        setStatus(t('secure_link'), "#39FF14"); 
+        const dialerUi = document.getElementById("dialerUI");
+        if(dialerUi) { dialerUi.classList.add("hidden"); dialerUi.style.setProperty("display", "none", "important"); }
+        
+        const activeUi = document.getElementById("activeCallUI");
+        if(activeUi) { activeUi.classList.remove("hidden"); activeUi.style.setProperty("display", "flex", "important"); }
+        
+        document.getElementById("remoteIdDisplay").textContent = remoteNum; 
         if (window.dcHeartbeat) clearInterval(window.dcHeartbeat); window.dcHeartbeat = setInterval(async () => { if (dc && dc.readyState === "open") { dc.send(JSON.stringify(await encrypt({ type: "heartbeat" }))); } }, 5000);
     };
     dc.onmessage = async (e) => {
@@ -388,7 +386,7 @@ async function applyAudioHack() {
     } catch(e) {}
 }
 
-function updateProgress(percent, text) { const pCont = document.getElementById("fileProgress"), pBar = document.getElementById("progBar"); if (!pCont || !pBar) return; if (percent < 0) { pCont.classList.add("hidden"); return; } pCont.classList.remove("hidden"); document.getElementById("progText").textContent = text || t('transfer'); pBar.style.width = percent + "%"; document.getElementById("filePercent").textContent = Math.floor(percent) + "%"; }
+function updateProgress(percent, text) { const pCont = document.getElementById("fileProgress"), pBar = document.getElementById("progBar"); if (!pCont || !pBar) return; if (percent < 0) { pCont.classList.add("hidden"); pCont.style.setProperty("display", "none", "important"); return; } pCont.classList.remove("hidden"); pCont.style.setProperty("display", "block", "important"); document.getElementById("progText").textContent = text || t('transfer'); pBar.style.width = percent + "%"; document.getElementById("filePercent").textContent = Math.floor(percent) + "%"; }
 
 async function actualSendData(blob, name, type) { 
     try {
@@ -428,10 +426,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     window.addEventListener('popstate', (e) => {
-        if (isBusy || pc || !document.getElementById("activeCallUI").classList.contains("hidden") || !document.getElementById("incomingUI").classList.contains("hidden")) { history.pushState(null, null, location.href); if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); } 
+        if (isBusy || pc || !document.getElementById("activeCallUI").classList.contains("hidden") || !document.getElementById("incomingUI").classList.contains("hidden")) { 
+            history.pushState(null, null, location.href); 
+            if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); 
+            resetToDialer(); 
+        } 
         else if (isSystemInitialized) { 
-            document.getElementById("mainApp").classList.add("hidden"); 
-            document.getElementById("loginScreen").classList.remove("hidden"); 
+            // 🔥 ЖОРСТКЕ ПОВЕРНЕННЯ НА ЕКРАН ЛОГІНУ
+            const loginScreen = document.getElementById("loginScreen");
+            const mainApp = document.getElementById("mainApp");
+            
+            if(mainApp) {
+                mainApp.classList.add("hidden"); 
+                mainApp.style.setProperty("display", "none", "important");
+            }
+            if(loginScreen) {
+                loginScreen.classList.remove("hidden"); 
+                loginScreen.style.setProperty("display", "flex", "important");
+            }
+            
             isSystemInitialized = false; 
             if (ws) { ws.onclose = null; ws.close(); ws = null; } 
             if (wsPingInterval) { clearInterval(wsPingInterval); wsPingInterval = null; } 
@@ -463,8 +476,19 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        document.getElementById("loginScreen").classList.add("hidden");
-        document.getElementById("mainApp").classList.remove("hidden");
+        // 🔥 ЖОРСТКЕ ПЕРЕМИКАННЯ ЕКРАНІВ (Бронебійний метод)
+        const loginScreen = document.getElementById("loginScreen");
+        const mainApp = document.getElementById("mainApp");
+        
+        if(loginScreen) {
+            loginScreen.classList.add("hidden");
+            loginScreen.style.setProperty("display", "none", "important");
+        }
+        
+        if(mainApp) {
+            mainApp.classList.remove("hidden");
+            mainApp.style.setProperty("display", "flex", "important");
+        }
         
         history.pushState(null, null, location.href); 
         await deriveSessionKey(v); 
@@ -484,13 +508,33 @@ document.addEventListener("DOMContentLoaded", () => {
         flushSmsQueue(); document.getElementById("preCallMsg").value = ""; setStatus(t('sms_queued'), "var(--warn)"); vibrate(30); 
     });
     
-    const processNextSms = () => { if (smsInbox.length === 0) { document.getElementById("smsOverlay").classList.add("hidden"); document.getElementById("smsContent").textContent = ""; currentSms = null; document.getElementById("readSmsBtn").classList.add("hidden"); return; } currentSms = smsInbox.shift(); const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; document.getElementById("readSmsBtn").classList.add("hidden"); const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); if (currentSms.from) encrypt({ type: "sms_read_report" }).then(enc => sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc })); };
+    const processNextSms = () => { 
+        if (smsInbox.length === 0) { 
+            const smsUi = document.getElementById("smsOverlay");
+            if(smsUi) { smsUi.classList.add("hidden"); smsUi.style.setProperty("display", "none", "important"); }
+            document.getElementById("smsContent").textContent = ""; currentSms = null; 
+            const readBtn = document.getElementById("readSmsBtn");
+            if(readBtn) { readBtn.classList.add("hidden"); readBtn.style.setProperty("display", "none", "important"); }
+            return; 
+        } 
+        currentSms = smsInbox.shift(); const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; 
+        
+        const rBtn = document.getElementById("readSmsBtn");
+        if(rBtn) { rBtn.classList.add("hidden"); rBtn.style.setProperty("display", "none", "important"); }
+        
+        const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); 
+        if (currentSms.from) encrypt({ type: "sms_read_report" }).then(enc => sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc })); 
+    };
     bind("readSmsBtn", processNextSms); bind("burnSmsBtn", processNextSms);
     bind("geoBtn", () => { if (!dc) return; setStatus(t('gps_search'), "#FFD60A"); navigator.geolocation.getCurrentPosition(async (p) => { const url = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`; dc.send(JSON.stringify(await encrypt({ type: "msg", txt: url, isGeo: true }))); appendMsg(url, "self", true); setStatus(t('secure_link'), "#39FF14"); }, () => setStatus(t('no_gps'), "red"), { enableHighAccuracy: true }); });
     bind("burnBtn", async () => { document.getElementById("chatMessages").innerHTML = ""; vibrate([50, 50, 50]); if (dc && dc.readyState === "open") dc.send(JSON.stringify(await encrypt({ type: "burn" }))); });
     
     bind("acceptBtn", async () => { 
-        ringtone.pause(); document.getElementById("incomingUI").classList.add("hidden"); setStatus(t('sync'), "#FFD60A"); 
+        ringtone.pause(); 
+        const incUi = document.getElementById("incomingUI");
+        if(incUi) { incUi.classList.add("hidden"); incUi.style.setProperty("display", "none", "important"); }
+        
+        setStatus(t('sync'), "#FFD60A"); 
         try { 
             let wait = 0; const dynWait = SystemIntel.getCallTimeout(); while (!pendingOffer && wait < dynWait) { await new Promise(r => setTimeout(r, 500)); wait += 500; } 
             if (!pendingOffer) throw new Error("TIMEOUT"); 
@@ -516,7 +560,17 @@ function resetToDialer() {
     try { if (window.AndroidAudio && typeof window.AndroidAudio.setProximityEnabled === 'function') { window.AndroidAudio.setProximityEnabled(false); } if (window.AndroidAudio && typeof window.AndroidAudio.setSpeakerphoneOn === 'function') { window.AndroidAudio.setSpeakerphoneOn(true); } } catch(e) {}
     if (callTimerInterval) clearInterval(callTimerInterval); if (handshakeInterval) { clearInterval(handshakeInterval); handshakeInterval = null; } if (window.dcHeartbeat) { clearInterval(window.dcHeartbeat); window.dcHeartbeat = null; }
     updateProgress(-1); if (pc) pc.close(); if (stream) stream.getTracks().forEach(track => track.stop()); pc = null; dc = null; stream = null; remoteNum = null; pendingOffer = null; iceQueue = []; localIceQueue = [];
-    document.getElementById("activeCallUI").classList.add("hidden"); document.getElementById("incomingUI").classList.add("hidden"); document.getElementById("dialerUI").classList.remove("hidden"); document.getElementById("remoteVideo").style.display = "none"; document.getElementById("localVideo").style.display = "none";
+    
+    const activeUi = document.getElementById("activeCallUI");
+    if(activeUi) { activeUi.classList.add("hidden"); activeUi.style.setProperty("display", "none", "important"); }
+    
+    const incUi = document.getElementById("incomingUI");
+    if(incUi) { incUi.classList.add("hidden"); incUi.style.setProperty("display", "none", "important"); }
+    
+    const dialerUi = document.getElementById("dialerUI");
+    if(dialerUi) { dialerUi.classList.remove("hidden"); dialerUi.style.setProperty("display", "flex", "important"); }
+    
+    document.getElementById("remoteVideo").style.display = "none"; document.getElementById("localVideo").style.display = "none";
     const chatBox = document.getElementById("chatMessages"); if (chatBox) chatBox.innerHTML = ""; const msgInp = document.getElementById("msgInput"); if (msgInp) msgInp.value = "";
     if (ws && ws.readyState === WebSocket.OPEN) { setStatus(t('online'), "#39FF14"); } else { setStatus(t('ready'), "#FFD60A"); }
 }
