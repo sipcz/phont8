@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v135.0 [TITAN LOGIC FIX]
- * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + LOGIC FIX
- * FIX: BACKGROUND SMS QUEUE BLOCK, PEER OFFLINE BUG, SMS UI FLOW
+ * DRESDEN TACTICAL SYSTEM v136.0 [NETWORK RESILIENCE FIX]
+ * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + DYNAMIC BWE
+ * FIX: ZOMBIE CONNECTIONS, ICE RESTART, DYNAMIC VIDEO CONSTRAINTS
  * ============================================================
  */
 
@@ -143,10 +143,18 @@ let pendingSmsList = [];
 try { pendingSmsList = JSON.parse(localStorage.getItem('dresden_sms_queue') || '[]'); } catch(e) { localStorage.removeItem('dresden_sms_queue'); }
 let smsQueueInterval = null; let audioLockInterval = null;
 
+// 🔥 ФІКС 3: Динамічна адаптація відео при перемиканні мереж
 const SystemIntel = {
     os: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream ? 'ios' : 'android',
     networkType: '4g',
-    updateNet() { if (navigator.connection) { this.networkType = navigator.connection.effectiveType || '4g'; } this.updateUI(); },
+    updateNet() { 
+        if (navigator.connection) { 
+            const oldNet = this.networkType;
+            this.networkType = navigator.connection.effectiveType || '4g'; 
+            if (oldNet !== this.networkType) this.applyDynamicConstraints();
+        } 
+        this.updateUI(); 
+    },
     init() { 
         if (navigator.connection) { this.updateNet(); navigator.connection.addEventListener('change', () => this.updateNet()); setInterval(() => this.updateNet(), 3000); } 
         else { this.networkType = 'secure'; this.updateUI(); } 
@@ -159,6 +167,11 @@ const SystemIntel = {
     getVideoConstraints() { 
         if (this.networkType.includes('2g') || this.networkType.includes('3g')) return { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } }; 
         return { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } }; 
+    },
+    async applyDynamicConstraints() {
+        if (!stream || mediaMode !== 'video') return;
+        const track = stream.getVideoTracks()[0];
+        if (track) { try { await track.applyConstraints(this.getVideoConstraints()); } catch(e){} }
     },
     getCallTimeout() { return (this.networkType.includes('2g')) ? 25000 : 15000; }
 };
@@ -200,7 +213,6 @@ async function encrypt(payload) { if (!cryptoKey) return null; const iv = crypto
 async function decrypt(cont) { try { const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(b642buf(cont.iv)) }, cryptoKey, b642buf(cont.data)); return JSON.parse(new TextDecoder().decode(dec)); } catch (e) { return null; } }
 function sendWS(obj) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
 
-// 🔥 ФІКС 1: Розблокована черга SMS (Тепер відправляє всі повідомлення)
 async function flushSmsQueue() {
     if (!isSystemInitialized || pendingSmsList.length === 0 || !ws || ws.readyState !== WebSocket.OPEN) return;
     try { 
@@ -229,10 +241,8 @@ function initWS() {
         if (d.type === "your_number") { localStorage.setItem("my_id", d.number); document.getElementById("myNum").textContent = d.number; return; }
         if (d.type === "user_count") { const uc = document.getElementById("userCount"); if (uc) uc.textContent = d.count; return; }
         
-        // 🔥 ФІКС 2: Ігнорування офлайн-статусу фонових SMS
         if (d.type === "peer_offline") { 
-            if (d.to && remoteNum && d.to !== remoteNum) return; // Ігноруємо, якщо це не наш поточний співрозмовник
-            
+            if (d.to && remoteNum && d.to !== remoteNum) return;
             if (isBusy || pc || remoteNum) { setStatus(t('offline_err'), "red"); setTimeout(resetToDialer, 2500); } 
             else { setStatus(t('waiting_peer'), "var(--warn)"); setTimeout(() => { if (ws && ws.readyState === WebSocket.OPEN) setStatus(t('online'), "#39FF14"); }, 3000); }
             return; 
@@ -252,14 +262,24 @@ function initWS() {
                 
                 if (document.visibilityState === 'hidden') sendPush(t('push_inc_call'), `${t('push_from')}: ${d.from} (${modeText})`);
                 if (d.mode === 'data') { vibrate([100, 50, 100]); } else { vibrate([500, 100, 500]); ringtone.play().catch(()=>{}); } break;
-            case "offer": pendingOffer = d.offer; break;
+            case "offer": 
+                pendingOffer = d.offer; 
+                // Обробка ICE Restart (перепідключення) "на льоту" під час активного дзвінка
+                if (pc && pc.signalingState !== "closed") {
+                    try {
+                        await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
+                        const ans = await pc.createAnswer();
+                        await pc.setLocalDescription(ans);
+                        sendWS({ type: "answer", to: remoteNum, payload: await encrypt({ answer: pc.localDescription }) });
+                    } catch(e) {}
+                }
+                break;
             case "answer": 
                 if (pc && pc.signalingState === "have-local-offer") { try { await pc.setRemoteDescription(new RTCSessionDescription(d.answer)); iceQueue.forEach(c => pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{})); iceQueue = []; } catch(err){} } break;
             case "ice_batch": 
                 if (d.cands) { d.cands.forEach(c => { if (pc && pc.remoteDescription) { pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}); } else { iceQueue.push(c); } }); } break;
             case "hangup": resetToDialer(); break;
             
-            // 🔥 ФІКС 3: Правильна логіка UI для Вхідних SMS (Спочатку "ПРОЧИТАТИ", потім "ЗНИЩИТИ")
             case "sms": 
                 smsInbox.push({ txt: d.txt, from: d.from }); 
                 const rBtn = document.getElementById("readSmsBtn"); 
@@ -299,12 +319,32 @@ async function initPC(relay = false) {
         }
     };
     
-    pc.oniceconnectionstatechange = () => {
+    // 🔥 ФІКС 2: Безшовне перемикання та ICE Restart замість обриву дзвінка
+    pc.oniceconnectionstatechange = async () => {
         if (pc.iceConnectionState === "connected") { 
-            setStatus(t('secure_link'), "#39FF14"); if (connectionTimeout) clearTimeout(connectionTimeout); if (!callTimerInterval) startCallTimer(); 
+            setStatus(t('secure_link'), "#39FF14"); 
+            if (connectionTimeout) clearTimeout(connectionTimeout); 
+            if (!callTimerInterval) startCallTimer(); 
             try { if (mediaMode === 'audio' && window.AndroidAudio && typeof window.AndroidAudio.setProximityEnabled === 'function') { window.AndroidAudio.setProximityEnabled(true); } } catch(e) {}
-        } else if (["failed", "closed", "disconnected"].includes(pc.iceConnectionState)) { 
-            resetToDialer(); 
+        } else if (pc.iceConnectionState === "disconnected") {
+            setStatus("⏳ РЕКОНЕКТ...", "#FFD60A");
+            // Даємо 15 секунд на автоматичне відновлення (наприклад, зміна базової станції)
+            if (connectionTimeout) clearTimeout(connectionTimeout);
+            connectionTimeout = setTimeout(() => {
+                if (pc && pc.iceConnectionState !== "connected") resetToDialer();
+            }, 15000);
+        } else if (pc.iceConnectionState === "failed") { 
+            // Ініціюємо ICE Restart (генеруємо новий Offer з новими IP)
+            setStatus("📡 ICE RESTART...", "#FFD60A");
+            try {
+                if (pc && remoteNum) {
+                    const off = await pc.createOffer({ iceRestart: true });
+                    await pc.setLocalDescription(off);
+                    sendWS({ type: "offer", to: remoteNum, payload: await encrypt({ offer: pc.localDescription }) });
+                }
+            } catch(e) { resetToDialer(); }
+        } else if (pc.iceConnectionState === "closed") {
+            resetToDialer();
         }
     };
     
@@ -383,7 +423,15 @@ function toggleMute() { if (!stream) return; isMuted = !isMuted; stream.getAudio
 
 document.addEventListener("DOMContentLoaded", () => {
     applyLangToUI(); 
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible' && isSystemInitialized) initWS(); });
+    
+    // Агресивне відновлення при виході з фонового режиму (Mobile Lifecycle)
+    document.addEventListener("visibilitychange", () => { 
+        if (document.visibilityState === 'visible' && isSystemInitialized) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) initWS();
+            else flushSmsQueue(); 
+        }
+    });
+    
     const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
 
     window.addEventListener("beforeunload", () => {
@@ -461,7 +509,6 @@ document.addEventListener("DOMContentLoaded", () => {
         } 
         currentSms = smsInbox.shift(); 
         
-        // Відображаємо вікно з повідомленням тільки ПІСЛЯ натискання "Прочитати"
         const smsUi = document.getElementById("smsOverlay"); 
         if(smsUi) { smsUi.classList.remove("hidden"); smsUi.style.setProperty("display", "flex", "important"); }
         
@@ -516,4 +563,3 @@ function resetToDialer() {
 function appendMsg(t, cls, isGeo = false) { const chat = document.getElementById("chatMessages"); if(!chat) return; const d = document.createElement("div"); d.className = `msg ${cls}`; if (isGeo || t.includes("maps?q=")) { const link = t.match(/https?:\/\/[^\s]+/)?.[0] || t; d.classList.add("geo-msg"); d.innerHTML = `📍 <a href="${link}" target="_blank" style="color:inherit;text-decoration:none;font-weight:bold;">TACTICAL GEOTAG</a>`; } else { d.textContent = t; } chat.appendChild(d); chat.scrollTop = chat.scrollHeight; }
 function appendImage(url, cls) { const chat = document.getElementById("chatMessages"); if(!chat) return; const d = document.createElement("div"); d.className = `msg ${cls} img-msg`; const img = new Image(); img.src = url; img.style.maxWidth = "200px"; img.style.borderRadius = "8px"; img.onclick = () => window.open(url, '_blank'); d.appendChild(img); chat.appendChild(d); chat.scrollTop = chat.scrollHeight; }
 function startCallTimer() { let s = 0; callTimerInterval = setInterval(() => { s++; const m = String(Math.floor(s/60)).padStart(2,"0"), sec = String(s%60).padStart(2,"0"); const el = document.getElementById("callTimer"); if(el) el.textContent = `${m}:${sec}`; }, 1000); }
-
