@@ -152,7 +152,7 @@ async function flushSmsQueue() {
 
 function initWS() {
     if (!isSystemInitialized || (ws && ws.readyState < 2)) return;
-    ws = new WebSocket("wss://phone-1igy.onrender.com");
+    ws = new WebSocket("wss://phont8.onrender.com");
     ws.onopen = () => { 
         sendWS({ type: "register", number: localStorage.getItem("my_id") }); 
         setStatus(t('online'), "#39FF14"); 
