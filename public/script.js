@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v138.0 [FINAL SECURE CORE]
+ * DRESDEN TACTICAL SYSTEM v139.0 [FINAL SECURE CORE + OBFUSCATOR SAFE]
  * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + DYNAMIC BWE
- * FIX: APK MODALS, UI STYLING, ICE RESTART, DEVICE TOKENS
+ * FIX: DOM SAFE SMS MODAL, APK MODALS, UI STYLING, ICE RESTART
  * ============================================================
  */
 
@@ -489,29 +489,54 @@ document.addEventListener("DOMContentLoaded", () => {
         flushSmsQueue(); document.getElementById("preCallMsg").value = ""; setStatus(t('sms_queued'), "var(--warn)"); vibrate(30); 
     });
     
+    // БЕЗПЕЧНИЙ РЕНДЕР SMS ВІКНА (не ламається обфускаторами)
     const processNextSms = () => { 
-        if (smsInbox.length === 0) { 
-            document.getElementById("smsOverlay").style.display = "none";
-            document.getElementById("smsOverlay").classList.add("hidden");
-            document.getElementById("smsContent").innerHTML = ""; currentSms = null; 
-            document.getElementById("readSmsBtn").style.display = "none";
-            document.getElementById("readSmsBtn").classList.add("hidden");
+        const smsUi = document.getElementById("smsOverlay");
+        const sc = document.getElementById("smsContent");
+        const rBtn = document.getElementById("readSmsBtn");
+        const bb = document.getElementById("burnSmsBtn");
+
+        if (!smsInbox || smsInbox.length === 0) { 
+            if(smsUi) { smsUi.style.display = "none"; smsUi.classList.add("hidden"); }
+            if(sc) sc.innerHTML = ""; 
+            currentSms = null; 
+            if(rBtn) { rBtn.style.display = "none"; rBtn.classList.add("hidden"); }
             return; 
         } 
+        
         currentSms = smsInbox.shift(); 
-        document.getElementById("smsOverlay").style.display = "flex";
-        document.getElementById("smsOverlay").classList.remove("hidden");
         
-        const sc = document.getElementById("smsContent"); 
-        sc.innerHTML = `<span class="sms-sender-id">[ВІДПРАВНИК: ${currentSms.from}]</span><span id="smsTextBody"></span>`;
-        document.getElementById("smsTextBody").textContent = currentSms.txt;
-        sc.style.display = "block"; 
+        if(smsUi) { smsUi.style.display = "flex"; smsUi.classList.remove("hidden"); }
         
-        document.getElementById("readSmsBtn").style.display = "none";
-        document.getElementById("readSmsBtn").classList.add("hidden");
-        const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); 
-        if (currentSms.from) encrypt({ type: "sms_read_report" }).then(enc => sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc })); 
+        if(sc) {
+            sc.innerHTML = ""; 
+            
+            const senderSpan = document.createElement("span");
+            senderSpan.className = "sms-sender-id";
+            senderSpan.textContent = "[ВІДПРАВНИК: " + (currentSms.from || "НЕВІДОМО") + "]";
+            
+            const textSpan = document.createElement("span");
+            textSpan.style.whiteSpace = "pre-wrap";
+            textSpan.textContent = currentSms.txt || " ";
+            
+            sc.appendChild(senderSpan);
+            sc.appendChild(textSpan);
+            sc.style.display = "block"; 
+        }
+        
+        if(rBtn) { rBtn.style.display = "none"; rBtn.classList.add("hidden"); }
+        if(bb) { 
+            bb.classList.remove("hidden"); 
+            bb.textContent = smsInbox.length > 0 ? (t('ui_burn_next') + " (" + smsInbox.length + ")") : t('ui_burn_sms'); 
+        } 
+        
+        if (currentSms && currentSms.from) { 
+            encrypt({ type: "sms_read_report" }).then(enc => {
+                sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc });
+            }).catch(e => {});
+        } 
     };
+
     bind("readSmsBtn", processNextSms); bind("burnSmsBtn", processNextSms);
     bind("geoBtn", () => { if (!dc) return; setStatus(t('gps_search'), "#FFD60A"); navigator.geolocation.getCurrentPosition(async (p) => { const url = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`; dc.send(JSON.stringify(await encrypt({ type: "msg", txt: url, isGeo: true }))); appendMsg(url, "self", true); setStatus(t('secure_link'), "#39FF14"); }, () => setStatus(t('no_gps'), "red"), { enableHighAccuracy: true }); });
     bind("burnBtn", async () => { document.getElementById("chatMessages").innerHTML = ""; vibrate([50, 50, 50]); if (dc && dc.readyState === "open") dc.send(JSON.stringify(await encrypt({ type: "burn" }))); });
