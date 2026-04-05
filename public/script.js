@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v132.0 [CACHE BUSTER & FAIL-SAFE]
- * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: FORCED CACHE OVERRIDE, SAFE JSON PARSING, LOGIN ARMOR
+ * DRESDEN TACTICAL SYSTEM v134.0 [TITAN ZOMBIE KILLER]
+ * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + INSTANT DROP
+ * FIX: ZOMBIE CALL FIX (ONCLOSE, DISCONNECTED, BEFOREUNLOAD)
  * ============================================================
  */
 
@@ -51,6 +51,7 @@ const DICT = {
         ui_lbl_target: "🎯 TARGET IDENTIFIER", ui_lbl_msg: "✉️ DATA PACKET (SMS)", ui_inc_link: "INCOMING LINK"
     }
 };
+
 function t(key) { return DICT[currentLang][key] || key; }
 
 function applyLangToUI() {
@@ -77,47 +78,35 @@ function applyLangToUI() {
     style.innerHTML = `
         .hidden { display: none !important; }
         body, html { height: 100%; overflow: hidden !important; overscroll-behavior: none; background: #000; margin: 0; font-family: monospace; }
-        
         .dialer-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
-        
         .tactical-panel { width: 100%; background: #050505; border: 1px solid #1a1a1a; padding: 20px; border-radius: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .input-wrapper { display: flex; flex-direction: column; width: 100%; }
         .tactical-label { font-size: 11px; color: #39FF14; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
         .sms-label { color: #00BFFF; }
-        
         .tactical-input { width: 100%; box-sizing: border-box; background: rgba(57,255,20,0.02); border: 1px solid #333; color: #39FF14; padding: 15px; font-size: 16px; font-family: monospace; outline: none; border-radius: 4px; transition: 0.3s; }
         .tactical-input:focus { border-color: #39FF14; box-shadow: 0 0 10px rgba(57,255,20,0.2); background: rgba(57,255,20,0.05); }
         .target-input { font-size: 24px; text-align: center; letter-spacing: 2px; }
         .sms-input { background: rgba(0,191,255,0.02); color: #00BFFF; border-color: #113344; }
         .sms-input:focus { border-color: #00BFFF; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
-
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
         .tactical-btn { padding: 15px; font-family: monospace; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: 0.2s; box-sizing: border-box; outline: none; display: flex; align-items: center; justify-content: center; text-align: center; }
         .tactical-btn:active { transform: scale(0.98); }
         .huge-btn { padding: 20px 10px; font-size: 16px; letter-spacing: 1px; }
-        
         .primary-btn { background: #001a00; color: #39FF14; border: 2px solid #39FF14; box-shadow: 0 0 10px rgba(57,255,20,0.2); }
         .primary-btn:active { background: #39FF14; color: #000; }
-        
         .secondary-btn { background: #00111a; color: #00BFFF; border: 2px solid #00BFFF; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
         .secondary-btn:active { background: #00BFFF; color: #000; }
-
         .toggle-btn { background: #0a0a0a; color: #aaa; border: 1px solid #333; font-size: 12px; }
         .warning-btn { background: #1a1a00; color: #FFD60A; border: 2px solid #FFD60A; box-shadow: 0 0 10px rgba(255,214,10,0.2); }
         .danger-btn { background: #2a0000; color: #ff3b30; border: 2px solid #ff3b30; }
-
         #mainApp:not(.hidden) { display: flex !important; flex-direction: column !important; height: 100dvh !important; width: 100vw !important; overflow: hidden !important; }
         .top-bar { flex: 0 0 auto; padding: 5px 10px; z-index: 100; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
         #activeCallUI:not(.hidden) { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; overflow: hidden !important; position: relative !important; }
-        
+        #incomingUI:not(.hidden) { display: flex !important; flex-direction: column !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100dvh !important; background: rgba(0,0,0,0.98) !important; z-index: 9999 !important; justify-content: center !important; align-items: center !important; }
+        #smsOverlay:not(.hidden) { display: flex !important; flex-direction: column !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 90% !important; max-width: 400px !important; background: #050505 !important; border: 2px solid #00BFFF !important; box-shadow: 0 0 30px rgba(0,191,255,0.3) !important; padding: 20px !important; z-index: 9999 !important; border-radius: 8px !important; box-sizing: border-box !important; }
         #remoteVideo { width: 100% !important; height: 40dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
         #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 80px !important; height: 105px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
-        
-        @media (min-width: 768px) {
-            #remoteVideo { height: 70dvh !important; object-fit: contain !important; }
-            #localVideo { width: 160px !important; height: 120px !important; }
-        }
-
+        @media (min-width: 768px) { #remoteVideo { height: 70dvh !important; object-fit: contain !important; } #localVideo { width: 160px !important; height: 120px !important; } }
         #chatMessages { flex: 1 1 auto !important; overflow-y: auto !important; padding: 10px !important; background: linear-gradient(180deg, #050505 0%, #000 100%) !important; scroll-behavior: smooth !important; border-top: 1px solid #1a1a1a; }
         .call-controls { flex: 0 0 auto; padding: 10px 5px calc(10px + env(safe-area-inset-bottom)) 5px !important; background: #080808; display: flex; flex-wrap: wrap; gap: 5px; justify-content: space-between; }
         .btn-sub { font-size: 11px !important; padding: 10px 5px !important; flex: 1; background:#111; color:#39FF14; border:1px solid #333; border-radius:4px; font-weight:bold; cursor:pointer;}
@@ -130,13 +119,7 @@ function applyLangToUI() {
 
 const DURESS_KEY = "1234567890"; const CRYPTO_SALT = "DRESDEN_V56_ETERNAL_STABILITY"; const PBKDF2_ITERATIONS = 500000; const MAX_IMAGE_DIMENSION = 1600;
 
-const stunPool = [
-    "stun:stun.l.google.com:19302",
-    "stun:stun1.l.google.com:19302",
-    "stun:stun.cloudflare.com:3478",
-    "stun:global.stun.twilio.com:3478",
-    "stun:stun.relay.metered.ca:80"
-];
+const stunPool = [ "stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun.cloudflare.com:3478", "stun:global.stun.twilio.com:3478", "stun:stun.relay.metered.ca:80" ];
 
 const turnPool = [
     { urls: "turn:free.expressturn.com:3478", username: "000000002090663353", credential: "VSl5ppuDRv7VUw9hCD7UZRfjyZU=" },
@@ -156,10 +139,8 @@ let incomingFile = { name: "", chunks: [], total: 0, received: 0, type: "" };
 let audioCtx = null, micSource = null, distortionNode = null, isScrambled = false;
 const ringtone = new Audio("ringtone.mp3"); ringtone.loop = true;
 
-// 🔥 Безпечне завантаження з пам'яті
 let pendingSmsList = [];
 try { pendingSmsList = JSON.parse(localStorage.getItem('dresden_sms_queue') || '[]'); } catch(e) { localStorage.removeItem('dresden_sms_queue'); }
-
 let smsQueueInterval = null; let audioLockInterval = null;
 
 const SystemIntel = {
@@ -256,13 +237,9 @@ function initWS() {
                 const incMsg = document.getElementById("incomingPaging"); if (incMsg) { incMsg.textContent = `[${modeText}]` + (d.msg ? ` | MSG: ${d.msg}` : ""); incMsg.style.color = (d.mode === 'data') ? "#00BFFF" : "#FFD60A"; }
                 
                 const incUi = document.getElementById("incomingUI");
-                if(incUi) {
-                    incUi.classList.remove("hidden");
-                    incUi.style.setProperty("display", "flex", "important");
-                }
+                if(incUi) { incUi.classList.remove("hidden"); incUi.style.setProperty("display", "flex", "important"); }
                 
                 if (document.visibilityState === 'hidden') sendPush(t('push_inc_call'), `${t('push_from')}: ${d.from} (${modeText})`);
-                
                 if (d.mode === 'data') { vibrate([100, 50, 100]); } else { vibrate([500, 100, 500]); ringtone.play().catch(()=>{}); } break;
             case "offer": pendingOffer = d.offer; break;
             case "answer": 
@@ -273,14 +250,9 @@ function initWS() {
             case "sms": 
                 smsInbox.push({ txt: d.txt, from: d.from }); 
                 const smsUi = document.getElementById("smsOverlay");
-                if (smsUi) {
-                    smsUi.classList.remove("hidden");
-                    smsUi.style.setProperty("display", "flex", "important");
-                }
+                if (smsUi) { smsUi.classList.remove("hidden"); smsUi.style.setProperty("display", "flex", "important"); }
                 const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.remove("hidden"); rBtn.style.setProperty("display", "flex", "important"); rBtn.textContent = `${t('ui_read_sms')} (${smsInbox.length})`; } 
-                
                 if (document.visibilityState === 'hidden') sendPush(`${t('push_sms_from')} ${d.from}`, d.txt);
-                
                 vibrate(200); 
                 if (d.smsId) sendWS({ type: "sms_ack", to: d.from, payload: await encrypt({ type: "sms_ack", smsId: d.smsId }) }); break;
             case "sms_ack":
@@ -295,22 +267,12 @@ async function initPC(relay = false) {
     isBusy = true; gatheredRelay = false; 
     let iceConfig = [];
 
-    if (relay) { 
-        iceConfig = turnPool; 
-    } else { 
-        const shuffledStun = [...stunPool].sort(() => 0.5 - Math.random()).slice(0, 3);
-        iceConfig = [{ urls: shuffledStun }, ...turnPool]; 
-    }
+    if (relay) { iceConfig = turnPool; } 
+    else { const shuffledStun = [...stunPool].sort(() => 0.5 - Math.random()).slice(0, 3); iceConfig = [{ urls: shuffledStun }, ...turnPool]; }
 
     const policy = relay ? 'relay' : 'all';
 
-    pc = new RTCPeerConnection({ 
-        iceServers: iceConfig, 
-        iceTransportPolicy: policy, 
-        bundlePolicy: 'max-bundle', 
-        iceCandidatePoolSize: 10, 
-        rtcpMuxPolicy: "require" 
-    });
+    pc = new RTCPeerConnection({ iceServers: iceConfig, iceTransportPolicy: policy, bundlePolicy: 'max-bundle', iceCandidatePoolSize: 10, rtcpMuxPolicy: "require" });
 
     if (connectionTimeout) clearTimeout(connectionTimeout); const dynTimeout = SystemIntel.getCallTimeout();
     connectionTimeout = setTimeout(() => { if (pc && pc.iceConnectionState !== "connected") { setStatus(t('timeout'), "red"); if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); } }, dynTimeout); 
@@ -323,11 +285,14 @@ async function initPC(relay = false) {
         }
     };
     
+    // 🔥 ФІКС 3: Агресивний ICE-Монітор (додано "disconnected" для миттєвого скидання)
     pc.oniceconnectionstatechange = () => {
         if (pc.iceConnectionState === "connected") { 
             setStatus(t('secure_link'), "#39FF14"); if (connectionTimeout) clearTimeout(connectionTimeout); if (!callTimerInterval) startCallTimer(); 
             try { if (mediaMode === 'audio' && window.AndroidAudio && typeof window.AndroidAudio.setProximityEnabled === 'function') { window.AndroidAudio.setProximityEnabled(true); } } catch(e) {}
-        } else if (["failed", "closed"].includes(pc.iceConnectionState)) { resetToDialer(); }
+        } else if (["failed", "closed", "disconnected"].includes(pc.iceConnectionState)) { 
+            resetToDialer(); 
+        }
     };
     
     pc.ontrack = (e) => { const el = e.track.kind === 'video' ? document.getElementById("remoteVideo") : document.getElementById("audio"); if (el) { el.srcObject = e.streams[0]; el.style.display = "block"; el.play().catch(()=>{}); if (isEarpieceMode) applyAudioHack(); } };
@@ -340,14 +305,11 @@ async function initPC(relay = false) {
 }
 
 function setupDC(channel) {
-    dc = channel; dc.onopen = () => { 
+    dc = channel; 
+    dc.onopen = () => { 
         setStatus(t('secure_link'), "#39FF14"); 
-        const dialerUi = document.getElementById("dialerUI");
-        if(dialerUi) { dialerUi.classList.add("hidden"); dialerUi.style.setProperty("display", "none", "important"); }
-        
-        const activeUi = document.getElementById("activeCallUI");
-        if(activeUi) { activeUi.classList.remove("hidden"); activeUi.style.setProperty("display", "flex", "important"); }
-        
+        const dialerUi = document.getElementById("dialerUI"); if(dialerUi) { dialerUi.classList.add("hidden"); dialerUi.style.setProperty("display", "none", "important"); }
+        const activeUi = document.getElementById("activeCallUI"); if(activeUi) { activeUi.classList.remove("hidden"); activeUi.style.setProperty("display", "flex", "important"); }
         document.getElementById("remoteIdDisplay").textContent = remoteNum; 
         if (window.dcHeartbeat) clearInterval(window.dcHeartbeat); window.dcHeartbeat = setInterval(async () => { if (dc && dc.readyState === "open") { dc.send(JSON.stringify(await encrypt({ type: "heartbeat" }))); } }, 5000);
     };
@@ -357,19 +319,17 @@ function setupDC(channel) {
         if (r.type === "burn") { document.getElementById("chatMessages").innerHTML = ""; vibrate(50); } 
         if (r.type.startsWith("file_")) handleIncomingData(r);
     };
+    
+    // 🔥 ФІКС 2: Миттєвий детектор руйнування DataChannel
+    dc.onclose = () => { resetToDialer(); };
+    dc.onerror = () => { resetToDialer(); };
 }
 
 function injectSpeakerButton() {
     const controls = document.querySelector(".call-controls"); if (!controls) return;
     if (!document.getElementById("speakerBtn")) {
         const btn = document.createElement("button"); btn.id = "speakerBtn"; btn.className = "btn-sub"; btn.textContent = t('btn_speaker'); 
-        btn.onclick = async () => { 
-            isEarpieceMode = !isEarpieceMode; 
-            btn.textContent = isEarpieceMode ? t('btn_earpiece') : t('btn_speaker'); 
-            btn.style.color = isEarpieceMode ? "#00BFFF" : "#39FF14"; 
-            btn.style.borderColor = isEarpieceMode ? "#00BFFF" : "#333"; 
-            await applyAudioHack(); 
-        }; 
+        btn.onclick = async () => { isEarpieceMode = !isEarpieceMode; btn.textContent = isEarpieceMode ? t('btn_earpiece') : t('btn_speaker'); btn.style.color = isEarpieceMode ? "#00BFFF" : "#39FF14"; btn.style.borderColor = isEarpieceMode ? "#00BFFF" : "#333"; await applyAudioHack(); }; 
         const hangBtn = document.getElementById("hangBtn"); if (hangBtn) controls.insertBefore(btn, hangBtn); else controls.appendChild(btn);
     }
 }
@@ -377,10 +337,7 @@ function injectSpeakerButton() {
 async function applyAudioHack() {
     try {
         if (audioLockInterval) { clearInterval(audioLockInterval); audioLockInterval = null; }
-        if (window.AndroidAudio && typeof window.AndroidAudio.setSpeakerphoneOn === 'function') { 
-            window.AndroidAudio.setSpeakerphoneOn(!isEarpieceMode); 
-            if (isEarpieceMode) { audioLockInterval = setInterval(() => { try { window.AndroidAudio.setSpeakerphoneOn(false); } catch(e){} }, 1500); } return; 
-        }
+        if (window.AndroidAudio && typeof window.AndroidAudio.setSpeakerphoneOn === 'function') { window.AndroidAudio.setSpeakerphoneOn(!isEarpieceMode); if (isEarpieceMode) { audioLockInterval = setInterval(() => { try { window.AndroidAudio.setSpeakerphoneOn(false); } catch(e){} }, 1500); } return; }
         const audioEl = document.getElementById("audio"); if (!audioEl || !audioEl.srcObject) return;
         if (typeof audioEl.setSinkId !== 'undefined') { try { const devs = await navigator.mediaDevices.enumerateDevices(); const outs = devs.filter(d => d.kind === 'audiooutput'); const target = isEarpieceMode ? outs.find(d => d.label.toLowerCase().includes('earpiece')) : outs.find(d => d.label.toLowerCase().includes('speaker')); if (target) await audioEl.setSinkId(target.deviceId); } catch(e) {} } 
         else if (SystemIntel.os === 'ios') { const tracks = audioEl.srcObject.getAudioTracks(); if (tracks.length > 0) { tracks[0].enabled = false; new Audio().play().catch(()=>{}); setTimeout(() => tracks[0].enabled = true, 300); } }
@@ -417,6 +374,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible' && isSystemInitialized) initWS(); });
     const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
 
+    // 🔥 ФІКС 1: Останній подих (Відправляємо відбій перед закриттям вкладки)
+    window.addEventListener("beforeunload", () => {
+        if (remoteNum && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "hangup", to: remoteNum }));
+        }
+    });
+
     const topBar = document.querySelector('.top-bar');
     if (topBar && !document.getElementById("langBtn")) {
         const langBtn = document.createElement("button"); langBtn.id = "langBtn";
@@ -436,14 +400,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const loginScreen = document.getElementById("loginScreen");
             const mainApp = document.getElementById("mainApp");
             
-            if(mainApp) {
-                mainApp.classList.add("hidden"); 
-                mainApp.style.setProperty("display", "none", "important");
-            }
-            if(loginScreen) {
-                loginScreen.classList.remove("hidden"); 
-                loginScreen.style.setProperty("display", "flex", "important");
-            }
+            if(mainApp) { mainApp.classList.add("hidden"); mainApp.style.setProperty("display", "none", "important"); }
+            if(loginScreen) { loginScreen.classList.remove("hidden"); loginScreen.style.setProperty("display", "flex", "important"); }
             
             isSystemInitialized = false; 
             if (ws) { ws.onclose = null; ws.close(); ws = null; } 
@@ -457,47 +415,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     bind("startBtn", async () => { 
-        
         const v = document.getElementById("passInput").value; 
-        
-        // ❗ ПАРОЛЬ МАЄ БУТИ 4 АБО БІЛЬШЕ СИМВОЛІВ
         if (v.length < 4) {
-            const inp = document.getElementById("passInput");
-            inp.style.borderColor = "red";
-            inp.style.color = "red";
-            inp.value = "";
-            inp.placeholder = t('pass_short');
-            setTimeout(() => { inp.style.borderColor = "#39FF14"; inp.style.color = "#39FF14"; inp.placeholder = t('ui_pass'); }, 2000);
-            return;
+            const inp = document.getElementById("passInput"); inp.style.borderColor = "red"; inp.style.color = "red"; inp.value = ""; inp.placeholder = t('pass_short');
+            setTimeout(() => { inp.style.borderColor = "#39FF14"; inp.style.color = "#39FF14"; inp.placeholder = t('ui_pass'); }, 2000); return;
         }
 
-        // 🔥 ЖОРСТКЕ ЗНИЩЕННЯ ЕКРАНУ ЛОГІНУ (Бронебійний метод)
-        const loginScreen = document.getElementById("loginScreen");
-        const mainApp = document.getElementById("mainApp");
-        
-        if(loginScreen) {
-            loginScreen.classList.add("hidden");
-            loginScreen.style.setProperty("display", "none", "important");
-        }
-        
-        if(mainApp) {
-            mainApp.classList.remove("hidden");
-            mainApp.style.setProperty("display", "flex", "important");
-        }
+        const loginScreen = document.getElementById("loginScreen"); const mainApp = document.getElementById("mainApp");
+        if(loginScreen) { loginScreen.classList.add("hidden"); loginScreen.style.setProperty("display", "none", "important"); }
+        if(mainApp) { mainApp.classList.remove("hidden"); mainApp.style.setProperty("display", "flex", "important"); }
 
-        try { 
-            if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") { 
-                Notification.requestPermission().catch(()=>{}); 
-            } 
-        } catch(e) {}
+        try { if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") { Notification.requestPermission().catch(()=>{}); } } catch(e) {}
         
-        history.pushState(null, null, location.href); 
-        await deriveSessionKey(v); 
-        initWS(); 
+        history.pushState(null, null, location.href); await deriveSessionKey(v); initWS(); 
         
-        if (topBar && !document.getElementById("lockBtn")) { 
-            const lockBtn = document.createElement("button"); lockBtn.id = "lockBtn"; lockBtn.textContent = t('btn_lock'); lockBtn.style.cssText = "background: transparent; color: #FFD60A; border: 1px solid #FFD60A; border-radius: 3px; font-size: 10px; padding: 3px 8px; margin-left: 5px; cursor: pointer; font-weight: bold;"; lockBtn.onclick = () => history.back(); topBar.appendChild(lockBtn); 
-        }
+        if (topBar && !document.getElementById("lockBtn")) { const lockBtn = document.createElement("button"); lockBtn.id = "lockBtn"; lockBtn.textContent = t('btn_lock'); lockBtn.style.cssText = "background: transparent; color: #FFD60A; border: 1px solid #FFD60A; border-radius: 3px; font-size: 10px; padding: 3px 8px; margin-left: 5px; cursor: pointer; font-weight: bold;"; lockBtn.onclick = () => history.back(); topBar.appendChild(lockBtn); }
     });
 
     bind("videoModeBtn", () => { if (mediaMode === 'audio') mediaMode = 'video'; else if (mediaMode === 'video') mediaMode = 'data'; else mediaMode = 'audio'; vibrate(30); const btn = document.getElementById("videoModeBtn"); if (mediaMode === 'video') { btn.textContent = t('btn_video_on'); btn.style.color = "#39FF14"; btn.style.borderColor = "#39FF14"; } else if (mediaMode === 'data') { btn.textContent = t('btn_chat_only'); btn.style.color = "#00BFFF"; btn.style.borderColor = "#00BFFF"; } else { btn.textContent = t('btn_audio_only'); btn.style.color = "#FFD60A"; btn.style.borderColor = "#333"; } });
@@ -511,18 +443,13 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const processNextSms = () => { 
         if (smsInbox.length === 0) { 
-            const smsUi = document.getElementById("smsOverlay");
-            if(smsUi) { smsUi.classList.add("hidden"); smsUi.style.setProperty("display", "none", "important"); }
+            const smsUi = document.getElementById("smsOverlay"); if(smsUi) { smsUi.classList.add("hidden"); smsUi.style.setProperty("display", "none", "important"); }
             document.getElementById("smsContent").textContent = ""; currentSms = null; 
-            const readBtn = document.getElementById("readSmsBtn");
-            if(readBtn) { readBtn.classList.add("hidden"); readBtn.style.setProperty("display", "none", "important"); }
+            const readBtn = document.getElementById("readSmsBtn"); if(readBtn) { readBtn.classList.add("hidden"); readBtn.style.setProperty("display", "none", "important"); }
             return; 
         } 
         currentSms = smsInbox.shift(); const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; 
-        
-        const rBtn = document.getElementById("readSmsBtn");
-        if(rBtn) { rBtn.classList.add("hidden"); rBtn.style.setProperty("display", "none", "important"); }
-        
+        const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.add("hidden"); rBtn.style.setProperty("display", "none", "important"); }
         const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); 
         if (currentSms.from) encrypt({ type: "sms_read_report" }).then(enc => sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc })); 
     };
@@ -532,9 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     bind("acceptBtn", async () => { 
         ringtone.pause(); 
-        const incUi = document.getElementById("incomingUI");
-        if(incUi) { incUi.classList.add("hidden"); incUi.style.setProperty("display", "none", "important"); }
-        
+        const incUi = document.getElementById("incomingUI"); if(incUi) { incUi.classList.add("hidden"); incUi.style.setProperty("display", "none", "important"); }
         setStatus(t('sync'), "#FFD60A"); 
         try { 
             let wait = 0; const dynWait = SystemIntel.getCallTimeout(); while (!pendingOffer && wait < dynWait) { await new Promise(r => setTimeout(r, 500)); wait += 500; } 
@@ -562,14 +487,9 @@ function resetToDialer() {
     if (callTimerInterval) clearInterval(callTimerInterval); if (handshakeInterval) { clearInterval(handshakeInterval); handshakeInterval = null; } if (window.dcHeartbeat) { clearInterval(window.dcHeartbeat); window.dcHeartbeat = null; }
     updateProgress(-1); if (pc) pc.close(); if (stream) stream.getTracks().forEach(track => track.stop()); pc = null; dc = null; stream = null; remoteNum = null; pendingOffer = null; iceQueue = []; localIceQueue = [];
     
-    const activeUi = document.getElementById("activeCallUI");
-    if(activeUi) { activeUi.classList.add("hidden"); activeUi.style.setProperty("display", "none", "important"); }
-    
-    const incUi = document.getElementById("incomingUI");
-    if(incUi) { incUi.classList.add("hidden"); incUi.style.setProperty("display", "none", "important"); }
-    
-    const dialerUi = document.getElementById("dialerUI");
-    if(dialerUi) { dialerUi.classList.remove("hidden"); dialerUi.style.setProperty("display", "flex", "important"); }
+    const activeUi = document.getElementById("activeCallUI"); if(activeUi) { activeUi.classList.add("hidden"); activeUi.style.setProperty("display", "none", "important"); }
+    const incUi = document.getElementById("incomingUI"); if(incUi) { incUi.classList.add("hidden"); incUi.style.setProperty("display", "none", "important"); }
+    const dialerUi = document.getElementById("dialerUI"); if(dialerUi) { dialerUi.classList.remove("hidden"); dialerUi.style.setProperty("display", "flex", "important"); }
     
     document.getElementById("remoteVideo").style.display = "none"; document.getElementById("localVideo").style.display = "none";
     const chatBox = document.getElementById("chatMessages"); if (chatBox) chatBox.innerHTML = ""; const msgInp = document.getElementById("msgInput"); if (msgInp) msgInp.value = "";
