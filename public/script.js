@@ -1,14 +1,15 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v131.0 [TITAN LOGIN ARMOR]
+ * DRESDEN TACTICAL SYSTEM v132.0 [CACHE BUSTER & FAIL-SAFE]
  * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: BULLETPROOF LOGIN TRANSITION & CRYPTO FAIL-SAFE
+ * FIX: FORCED CACHE OVERRIDE, SAFE JSON PARSING, LOGIN ARMOR
  * ============================================================
  */
 
 "use strict";
 
-let currentLang = localStorage.getItem('dresden_lang') || 'ua';
+let currentLang = 'ua';
+try { currentLang = localStorage.getItem('dresden_lang') || 'ua'; } catch(e) {}
 
 const DICT = {
     'ua': {
@@ -109,9 +110,6 @@ function applyLangToUI() {
         .top-bar { flex: 0 0 auto; padding: 5px 10px; z-index: 100; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
         #activeCallUI:not(.hidden) { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; overflow: hidden !important; position: relative !important; }
         
-        #incomingUI:not(.hidden) { display: flex !important; flex-direction: column !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100dvh !important; background: rgba(0,0,0,0.98) !important; z-index: 9999 !important; justify-content: center !important; align-items: center !important; }
-        #smsOverlay:not(.hidden) { display: flex !important; flex-direction: column !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 90% !important; max-width: 400px !important; background: #050505 !important; border: 2px solid #00BFFF !important; box-shadow: 0 0 30px rgba(0,191,255,0.3) !important; padding: 20px !important; z-index: 9999 !important; border-radius: 8px !important; box-sizing: border-box !important; }
-
         #remoteVideo { width: 100% !important; height: 40dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
         #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 80px !important; height: 105px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
         
@@ -158,7 +156,10 @@ let incomingFile = { name: "", chunks: [], total: 0, received: 0, type: "" };
 let audioCtx = null, micSource = null, distortionNode = null, isScrambled = false;
 const ringtone = new Audio("ringtone.mp3"); ringtone.loop = true;
 
-let pendingSmsList = JSON.parse(localStorage.getItem('dresden_sms_queue') || '[]');
+// 🔥 Безпечне завантаження з пам'яті
+let pendingSmsList = [];
+try { pendingSmsList = JSON.parse(localStorage.getItem('dresden_sms_queue') || '[]'); } catch(e) { localStorage.removeItem('dresden_sms_queue'); }
+
 let smsQueueInterval = null; let audioLockInterval = null;
 
 const SystemIntel = {
@@ -200,7 +201,7 @@ async function deriveSessionKey(p) {
     if (p === DURESS_KEY) { localStorage.clear(); sessionStorage.clear(); window.location.replace("https://google.com"); return; }
     setStatus(t('keygen_active'), "#FFD60A");
     try { 
-        if (!crypto || !crypto.subtle) throw new Error("NO_HTTPS"); // 🔥 ДЕТЕКТОР БЕЗПЕКИ
+        if (!crypto || !crypto.subtle) throw new Error("NO_HTTPS");
         const enc = new TextEncoder(); 
         const mat = await crypto.subtle.importKey("raw", enc.encode(p), "PBKDF2", false, ["deriveKey"]); 
         cryptoKey = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(CRYPTO_SALT), iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, mat, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); 
@@ -210,7 +211,7 @@ async function deriveSessionKey(p) {
         setStatus(t('enc_active')); 
     } catch (e) { 
         setStatus(t('keygen_fail'), "red"); 
-        alert("🛡️ ПОМИЛКА БЕЗПЕКИ: Шифрування заблоковано браузером! Переконайтесь, що сайт відкрито через захищене з'єднання (HTTPS).");
+        alert("🛡️ ПОМИЛКА БЕЗПЕКИ: Браузер заблокував шифрування! Відкрийте сайт через HTTPS.");
     }
 }
 
@@ -432,7 +433,6 @@ document.addEventListener("DOMContentLoaded", () => {
             resetToDialer(); 
         } 
         else if (isSystemInitialized) { 
-            // 🔥 ЖОРСТКЕ ПОВЕРНЕННЯ НА ЕКРАН ЛОГІНУ
             const loginScreen = document.getElementById("loginScreen");
             const mainApp = document.getElementById("mainApp");
             
@@ -458,14 +458,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     bind("startBtn", async () => { 
         
-        try { 
-            if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") { 
-                Notification.requestPermission(); 
-            } 
-        } catch(e) {}
-
         const v = document.getElementById("passInput").value; 
         
+        // ❗ ПАРОЛЬ МАЄ БУТИ 4 АБО БІЛЬШЕ СИМВОЛІВ
         if (v.length < 4) {
             const inp = document.getElementById("passInput");
             inp.style.borderColor = "red";
@@ -476,7 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 🔥 ЖОРСТКЕ ПЕРЕМИКАННЯ ЕКРАНІВ (Бронебійний метод)
+        // 🔥 ЖОРСТКЕ ЗНИЩЕННЯ ЕКРАНУ ЛОГІНУ (Бронебійний метод)
         const loginScreen = document.getElementById("loginScreen");
         const mainApp = document.getElementById("mainApp");
         
@@ -489,6 +484,12 @@ document.addEventListener("DOMContentLoaded", () => {
             mainApp.classList.remove("hidden");
             mainApp.style.setProperty("display", "flex", "important");
         }
+
+        try { 
+            if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") { 
+                Notification.requestPermission().catch(()=>{}); 
+            } 
+        } catch(e) {}
         
         history.pushState(null, null, location.href); 
         await deriveSessionKey(v); 
