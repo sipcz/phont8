@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v122.0 [TITAN BILINGUAL]
+ * DRESDEN TACTICAL SYSTEM v122.0 [TITAN BILINGUAL + NEW SERVER]
  * STATUS: MULTILANGUAGE (EN/UA) + ROCK SOLID (ALL FIXES)
  * INCLUDES: FILE DEADLOCK FIX, AUDIO LOCK, GENTLE SMS QUEUE
  * ============================================================
@@ -152,7 +152,10 @@ async function flushSmsQueue() {
 
 function initWS() {
     if (!isSystemInitialized || (ws && ws.readyState < 2)) return;
+    
+    // ФІКС АДРЕСИ СЕРВЕРА: тепер дивиться на phont8
     ws = new WebSocket("wss://phont8.onrender.com");
+    
     ws.onopen = () => { 
         sendWS({ type: "register", number: localStorage.getItem("my_id") }); 
         setStatus(t('online'), "#39FF14"); 
