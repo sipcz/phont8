@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v134.0 [TITAN ZOMBIE KILLER]
- * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + INSTANT DROP
- * FIX: ZOMBIE CALL FIX (ONCLOSE, DISCONNECTED, BEFOREUNLOAD)
+ * DRESDEN TACTICAL SYSTEM v135.0 [TITAN LOGIC FIX]
+ * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + LOGIC FIX
+ * FIX: BACKGROUND SMS QUEUE BLOCK, PEER OFFLINE BUG, SMS UI FLOW
  * ============================================================
  */
 
@@ -200,9 +200,15 @@ async function encrypt(payload) { if (!cryptoKey) return null; const iv = crypto
 async function decrypt(cont) { try { const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(b642buf(cont.iv)) }, cryptoKey, b642buf(cont.data)); return JSON.parse(new TextDecoder().decode(dec)); } catch (e) { return null; } }
 function sendWS(obj) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
 
+// 🔥 ФІКС 1: Розблокована черга SMS (Тепер відправляє всі повідомлення)
 async function flushSmsQueue() {
     if (!isSystemInitialized || pendingSmsList.length === 0 || !ws || ws.readyState !== WebSocket.OPEN) return;
-    try { const s = pendingSmsList[0]; sendWS({ type: "sms", to: s.to, payload: await encrypt({ type: "sms", txt: s.txt, smsId: s.id }) }); } catch(e) {}
+    try { 
+        for (let i = 0; i < pendingSmsList.length; i++) {
+            const s = pendingSmsList[i];
+            sendWS({ type: "sms", to: s.to, payload: await encrypt({ type: "sms", txt: s.txt, smsId: s.id }) });
+        }
+    } catch(e) {}
 }
 
 function initWS() {
@@ -222,11 +228,16 @@ function initWS() {
         
         if (d.type === "your_number") { localStorage.setItem("my_id", d.number); document.getElementById("myNum").textContent = d.number; return; }
         if (d.type === "user_count") { const uc = document.getElementById("userCount"); if (uc) uc.textContent = d.count; return; }
+        
+        // 🔥 ФІКС 2: Ігнорування офлайн-статусу фонових SMS
         if (d.type === "peer_offline") { 
+            if (d.to && remoteNum && d.to !== remoteNum) return; // Ігноруємо, якщо це не наш поточний співрозмовник
+            
             if (isBusy || pc || remoteNum) { setStatus(t('offline_err'), "red"); setTimeout(resetToDialer, 2500); } 
             else { setStatus(t('waiting_peer'), "var(--warn)"); setTimeout(() => { if (ws && ws.readyState === WebSocket.OPEN) setStatus(t('online'), "#39FF14"); }, 3000); }
             return; 
         }
+        
         if (d.type === "busy") { setStatus(t('busy'), "var(--warn)"); setTimeout(resetToDialer, 3000); return; }
         if (d.payload) { const r = await decrypt(d.payload); if (r) d = { ...d, ...r }; else return; }
         switch (d.type) {
@@ -247,14 +258,17 @@ function initWS() {
             case "ice_batch": 
                 if (d.cands) { d.cands.forEach(c => { if (pc && pc.remoteDescription) { pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}); } else { iceQueue.push(c); } }); } break;
             case "hangup": resetToDialer(); break;
+            
+            // 🔥 ФІКС 3: Правильна логіка UI для Вхідних SMS (Спочатку "ПРОЧИТАТИ", потім "ЗНИЩИТИ")
             case "sms": 
                 smsInbox.push({ txt: d.txt, from: d.from }); 
-                const smsUi = document.getElementById("smsOverlay");
-                if (smsUi) { smsUi.classList.remove("hidden"); smsUi.style.setProperty("display", "flex", "important"); }
-                const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.remove("hidden"); rBtn.style.setProperty("display", "flex", "important"); rBtn.textContent = `${t('ui_read_sms')} (${smsInbox.length})`; } 
+                const rBtn = document.getElementById("readSmsBtn"); 
+                if(rBtn) { rBtn.classList.remove("hidden"); rBtn.style.setProperty("display", "flex", "important"); rBtn.textContent = `${t('ui_read_sms')} (${smsInbox.length})`; } 
+                
                 if (document.visibilityState === 'hidden') sendPush(`${t('push_sms_from')} ${d.from}`, d.txt);
                 vibrate(200); 
                 if (d.smsId) sendWS({ type: "sms_ack", to: d.from, payload: await encrypt({ type: "sms_ack", smsId: d.smsId }) }); break;
+            
             case "sms_ack":
                 pendingSmsList = pendingSmsList.filter(s => s.id !== d.smsId); localStorage.setItem('dresden_sms_queue', JSON.stringify(pendingSmsList));
                 setStatus(t('sms_delivered'), "#39FF14"); setTimeout(flushSmsQueue, 1000); break;
@@ -285,7 +299,6 @@ async function initPC(relay = false) {
         }
     };
     
-    // 🔥 ФІКС 3: Агресивний ICE-Монітор (додано "disconnected" для миттєвого скидання)
     pc.oniceconnectionstatechange = () => {
         if (pc.iceConnectionState === "connected") { 
             setStatus(t('secure_link'), "#39FF14"); if (connectionTimeout) clearTimeout(connectionTimeout); if (!callTimerInterval) startCallTimer(); 
@@ -320,7 +333,6 @@ function setupDC(channel) {
         if (r.type.startsWith("file_")) handleIncomingData(r);
     };
     
-    // 🔥 ФІКС 2: Миттєвий детектор руйнування DataChannel
     dc.onclose = () => { resetToDialer(); };
     dc.onerror = () => { resetToDialer(); };
 }
@@ -374,7 +386,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible' && isSystemInitialized) initWS(); });
     const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
 
-    // 🔥 ФІКС 1: Останній подих (Відправляємо відбій перед закриттям вкладки)
     window.addEventListener("beforeunload", () => {
         if (remoteNum && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: "hangup", to: remoteNum }));
@@ -448,7 +459,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const readBtn = document.getElementById("readSmsBtn"); if(readBtn) { readBtn.classList.add("hidden"); readBtn.style.setProperty("display", "none", "important"); }
             return; 
         } 
-        currentSms = smsInbox.shift(); const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; 
+        currentSms = smsInbox.shift(); 
+        
+        // Відображаємо вікно з повідомленням тільки ПІСЛЯ натискання "Прочитати"
+        const smsUi = document.getElementById("smsOverlay"); 
+        if(smsUi) { smsUi.classList.remove("hidden"); smsUi.style.setProperty("display", "flex", "important"); }
+        
+        const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; 
         const rBtn = document.getElementById("readSmsBtn"); if(rBtn) { rBtn.classList.add("hidden"); rBtn.style.setProperty("display", "none", "important"); }
         const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); 
         if (currentSms.from) encrypt({ type: "sms_read_report" }).then(enc => sendWS({ type: "sms_read_report", to: currentSms.from, payload: enc })); 
