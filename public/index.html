@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0d0e0a">
+    <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
     <title>DRESDEN TACTICAL</title>
     <style>.hidden { display: none !important; }</style>
 </head>
 <body style="background:#000; color:#39FF14; font-family:monospace; margin:0; padding:0; display:flex; flex-direction:column; height:100vh; overflow: hidden;">
 
-    <div id="loginScreen" class="screen-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+    <div id="loginScreen" class="screen-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%; position:absolute; top:0; left:0; background:#000; z-index:10000;">
         <h2 style="color:#FFD60A; letter-spacing: 3px; text-shadow: 0 0 10px #FFD60A; margin-bottom: 30px;">DRESDEN OS</h2>
         <div style="width: 80%; max-width: 350px; display: flex; flex-direction: column; gap: 15px;">
             <input type="password" id="passInput" class="tactical-input" placeholder="Passcode" style="letter-spacing: 5px; font-size: 24px; text-align: center;">
@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <div id="mainApp" class="hidden screen-container" style="flex-direction:column; height:100%;">
+    <div id="mainApp" class="hidden screen-container" style="flex-direction:column; height:100%; width:100%;">
         <div class="top-bar">
             <span>ID: <b id="myNum" style="font-size: 16px;">...</b> [<span id="userCount" style="color:#00BFFF;">0</span> 🌍]</span>
             <span id="status" style="color:#FFD60A; font-weight: bold;">READY</span>
@@ -77,4 +77,22 @@
             <div id="chatMessages"></div>
 
             <div class="chat-input" style="display:flex;">
-                <input type="text" id="msgInput" placeholder="Message..." style="flex:1; background:#111; color:#39FF14; border:1px solid #333; padding:10px; font-family
+                <input type="text" id="msgInput" placeholder="Message..." style="flex:1; background:#111; color:#39FF14; border:1px solid #333; padding:10px; font-family: monospace; outline: none;">
+                <button id="sendBtn" style="background:#111; color:#39FF14; border:1px solid #333; padding:10px 20px; font-weight: bold; cursor: pointer;">SEND</button>
+            </div>
+
+            <div class="call-controls">
+                <button id="muteBtn" class="btn-sub" style="color:#39FF14;">🎤 ON</button>
+                <button id="scrambleBtn" class="btn-sub" style="color:#39FF14;">🎭 NORMAL</button>
+                <button id="geoBtn" class="btn-sub" style="color:#FFD60A;">GEO</button>
+                <button id="photoBtn" class="btn-sub" style="color:#00BFFF;">FILE</button>
+                <button id="burnBtn" class="btn-sub" style="color:red; border-color:red;">BURN</button>
+                <button id="hangBtn" class="btn-sub" style="color:red; border-color:red; flex-basis:100%; font-size: 14px !important;">HANG UP <span id="callTimer">00:00</span></button>
+            </div>
+            <input type="file" id="fileInp" style="display:none;">
+        </div>
+    </div>
+
+    <script src="script.js?v=132"></script>
+</body>
+</html>
