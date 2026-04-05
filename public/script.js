@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * DRESDEN TACTICAL SYSTEM v138.0 [FINAL SECURE CORE]
+ * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + DYNAMIC BWE
+ * FIX: APK MODALS, UI STYLING, ICE RESTART, DEVICE TOKENS
+ * ============================================================
+ */
+
 "use strict";
 
 let currentLang = 'ua';
@@ -12,7 +20,7 @@ const DICT = {
         dialing: "📡 ДЗВІНОК...", error: "❌ ПОМИЛКА", transfer: "ПЕРЕДАЧА", sending: "ВІДПРАВКА", receiving: "ОТРИМАННЯ", 
         app_locked: "ЗАБЛОКОВАНО", waiting_peer: "⏳ ЧЕКАЄМО АБОНЕНТА...", keygen_active: "ГЕНЕРАЦІЯ КЛЮЧА...", 
         keygen_fail: "ПОМИЛКА КЛЮЧА", enc_active: "ШИФРУВАННЯ АКТИВНЕ", 
-        btn_lock: "🔒 БЛОК", btn_speaker: "🔊 ДИНАМІК", btn_earpiece: "📞 ДО ВУХА", btn_video_on: "🎥 ВІДЕО: УВІМК", 
+        btn_lock: "БЛОК", btn_speaker: "🔊 ДИНАМІК", btn_earpiece: "📞 ДО ВУХА", btn_video_on: "🎥 ВІДЕО: УВІМК", 
         btn_chat_only: "🖂 ТІЛЬКИ ЧАТ", btn_audio_only: "📞 ТІЛЬКИ АУДІО", btn_mute_on: "🎤 УВІМК", btn_mute_muted: "🎤 ВИМК", 
         btn_tactical: "🎭 ТАКТИЧНИЙ", btn_normal: "🎭 НОРМАЛЬНИЙ", btn_stealth_on: "🛰 СТЕЛС: УВІМК", btn_stealth_off: "🛰 СТЕЛС: ВИМК", 
         push_inc_call: "ВХІДНИЙ ВИКЛИК", push_from: "Від", push_new_msg: "Нове повідомлення", push_sms_from: "SMS від", 
@@ -20,8 +28,7 @@ const DICT = {
         ui_pass: "Пароль доступу", ui_start: "УВІЙТИ", ui_target: "Номер абонента", ui_call: "ДЗВІНОК", ui_sms_btn: "ВІДПРАВИТИ SMS", 
         ui_msg_inp: "Повідомлення...", ui_send: "НАДІСЛАТИ", ui_accept: "ПРИЙНЯТИ", ui_decline: "ВІДХИЛИТИ", ui_hang: "ЗАВЕРШИТИ", 
         ui_photo: "ФОТО", ui_geo: "ГЕО", ui_burn: "ЗНИЩИТИ", ui_pre_sms: "Текст SMS (Офлайн)...", ui_read_sms: "✉️ ВХІДНІ", 
-        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 8 СИМВОЛІВ!",
-        ui_lbl_target: "🎯 ІДЕНТИФІКАТОР ЦІЛІ", ui_lbl_msg: "✉️ ПАКЕТ ДАНИХ (SMS)", ui_inc_link: "ВХІДНИЙ ЗВ'ЯЗОК"
+        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 8 СИМВОЛІВ!"
     },
     'en': {
         online: "ONLINE", offline: "🔴 OFFLINE", offline_err: "❌ OFFLINE", ready: "READY", busy: "📵 BUSY", 
@@ -31,7 +38,7 @@ const DICT = {
         dialing: "📡 DIALING...", error: "❌ ERROR", transfer: "TRANSFER", sending: "SENDING", receiving: "RECEIVING", 
         app_locked: "APP LOCKED", waiting_peer: "⏳ WAITING PEER...", keygen_active: "KEYGEN ACTIVE...", 
         keygen_fail: "KEYGEN FAIL", enc_active: "ENCRYPTION ACTIVE", 
-        btn_lock: "🔒 LOCK", btn_speaker: "🔊 SPEAKER", btn_earpiece: "📞 EARPIECE", btn_video_on: "🎥 VIDEO: ON", 
+        btn_lock: "LOCK", btn_speaker: "🔊 SPEAKER", btn_earpiece: "📞 EARPIECE", btn_video_on: "🎥 VIDEO: ON", 
         btn_chat_only: "🖂 CHAT ONLY", btn_audio_only: "📞 AUDIO ONLY", btn_mute_on: "🎤 ON", btn_mute_muted: "🎤 MUTED", 
         btn_tactical: "🎭 TACTICAL", btn_normal: "🎭 NORMAL", btn_stealth_on: "🛰 STEALTH: ON", btn_stealth_off: "🛰 STEALTH: OFF", 
         push_inc_call: "INCOMING CALL", push_from: "From", push_new_msg: "New message", push_sms_from: "SMS from", 
@@ -39,8 +46,7 @@ const DICT = {
         ui_pass: "Passcode", ui_start: "START", ui_target: "Target Number", ui_call: "CALL", ui_sms_btn: "SEND SMS", 
         ui_msg_inp: "Message...", ui_send: "SEND", ui_accept: "ACCEPT", ui_decline: "DECLINE", ui_hang: "HANG UP", 
         ui_photo: "PHOTO", ui_geo: "GEO", ui_burn: "BURN", ui_pre_sms: "SMS Text (Offline)...", ui_read_sms: "✉️ INBOX", 
-        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 8 CHARS!",
-        ui_lbl_target: "🎯 TARGET IDENTIFIER", ui_lbl_msg: "✉️ DATA PACKET (SMS)", ui_inc_link: "INCOMING LINK"
+        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 8 CHARS!"
     }
 };
 
@@ -49,17 +55,16 @@ function t(key) { return DICT[currentLang][key] || key; }
 function applyLangToUI() {
     const tr = (id, key, isPlaceholder = false) => { const el = document.getElementById(id); if (el) { if (isPlaceholder) el.placeholder = t(key); else el.textContent = t(key); } };
     tr('passInput', 'ui_pass', true); tr('startBtn', 'ui_start'); tr('targetNum', 'ui_target', true); tr('callBtn', 'ui_call'); tr('smsBtn', 'ui_sms_btn'); tr('msgInput', 'ui_msg_inp', true); tr('sendBtn', 'ui_send'); tr('acceptBtn', 'ui_accept'); tr('declineBtn', 'ui_decline'); tr('hangBtn', 'ui_hang'); tr('photoBtn', 'ui_photo'); tr('geoBtn', 'ui_geo'); tr('burnBtn', 'ui_burn'); tr('preCallMsg', 'ui_pre_sms', true);
-    tr('lblTarget', 'ui_lbl_target'); tr('lblMsg', 'ui_lbl_msg');
     
-    const incTitle = document.querySelector('#incomingUI h2'); if (incTitle) incTitle.textContent = t('ui_inc_link');
+    const incTitle = document.querySelector('#incomingUI h2'); if (incTitle) incTitle.textContent = t('ui_inc_link') || "ВХІДНИЙ ЗВ'ЯЗОК";
 
     const vBtn = document.getElementById("videoModeBtn"); if(vBtn) { if (mediaMode === 'video') vBtn.textContent = t('btn_video_on'); else if (mediaMode === 'data') vBtn.textContent = t('btn_chat_only'); else vBtn.textContent = t('btn_audio_only'); }
     const muteBtn = document.getElementById("muteBtn"); if(muteBtn) muteBtn.textContent = isMuted ? t('btn_mute_muted') : t('btn_mute_on');
     const scrBtn = document.getElementById("scrambleBtn"); if(scrBtn) scrBtn.textContent = isScrambled ? t('btn_tactical') : t('btn_normal');
     const relBtn = document.getElementById("relayToggle"); if(relBtn) relBtn.textContent = isRelayMode ? t('btn_stealth_on') : t('btn_stealth_off');
     const spkBtn = document.getElementById("speakerBtn"); if (spkBtn) spkBtn.textContent = isEarpieceMode ? t('btn_earpiece') : t('btn_speaker');
-    const lockBtn = document.getElementById("lockBtn"); if (lockBtn) lockBtn.textContent = t('btn_lock');
-    const langBtn = document.getElementById("langBtn"); if (langBtn) langBtn.textContent = currentLang === 'ua' ? "🌍 ENG" : "🌍 УКР";
+    const lockBtn = document.getElementById("lockBtn"); if (lockBtn) lockBtn.innerHTML = "🔒 " + t('btn_lock');
+    const langBtn = document.getElementById("langBtn"); if (langBtn) langBtn.innerHTML = currentLang === 'ua' ? "🌍 ENG" : "🌍 УКР";
     const statusEl = document.getElementById("status"); if (statusEl && statusEl.textContent.includes("READY") || statusEl.textContent.includes("ГОТОВО")) statusEl.textContent = t('ready');
 }
 
@@ -81,6 +86,7 @@ let audioCtx = null, micSource = null, distortionNode = null, isScrambled = fals
 const ringtone = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg"); 
 ringtone.loop = true;
 
+// Токен пристрою для захисту номера
 let deviceToken = localStorage.getItem('dresden_device_token');
 if (!deviceToken) {
     deviceToken = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substr(2));
@@ -108,8 +114,18 @@ const SystemIntel = {
     },
     updateUI() { 
         let badge = document.getElementById('netBadge'); 
-        if (!badge) { badge = document.createElement('span'); badge.id = 'netBadge'; const myNumEl = document.getElementById('myNum'); if (myNumEl) myNumEl.parentNode.appendChild(badge); } 
-        if (badge) { badge.textContent = this.networkType.toUpperCase(); badge.style.color = (this.networkType.includes('2g')) ? '#ff3b30' : (this.networkType.includes('3g') ? '#FFD60A' : '#00BFFF'); badge.style.borderColor = badge.style.color; }
+        if (!badge) { 
+            badge = document.createElement('span'); 
+            badge.id = 'netBadge'; 
+            const statusEl = document.getElementById('status'); 
+            if (statusEl) statusEl.parentNode.insertBefore(badge, statusEl); 
+        } 
+        if (badge) { 
+            badge.textContent = this.networkType.toUpperCase(); 
+            badge.style.background = (this.networkType.includes('2g')) ? '#ff3b30' : (this.networkType.includes('3g') ? '#FFD60A' : '#00BFFF'); 
+            badge.style.borderColor = badge.style.background; 
+            badge.style.color = '#000'; 
+        }
     },
     getVideoConstraints() { 
         if (this.networkType.includes('2g') || this.networkType.includes('3g')) return { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } }; 
@@ -360,7 +376,6 @@ async function actualSendData(blob, name, type) {
     } catch (e) { updateProgress(-1); throw e; }
 }
 
-// 🔥 ФІКС ДЛЯ APK: Системне меню Share
 function handleIncomingData(payload) { 
     if (payload.type === "file_start") { incomingFile = { chunks: [], total: payload.total, type: payload.fileType, name: payload.name, received: 0 }; updateProgress(0, t('receiving')); return; } 
     if (payload.type === "file_chunk") { const chunk = new Uint8Array(b642buf(payload.chunk)); incomingFile.chunks.push(chunk); incomingFile.received += chunk.byteLength; updateProgress(Math.min((incomingFile.received / incomingFile.total) * 100, 100), t('receiving')); return; } 
@@ -406,13 +421,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (remoteNum && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "hangup", to: remoteNum })); }
     });
 
-    const topBar = document.querySelector('.top-bar');
-    if (topBar && !document.getElementById("langBtn")) {
+    const topBarContainer = document.getElementById('topButtons');
+    if (topBarContainer && !document.getElementById("langBtn")) {
         const langBtn = document.createElement("button"); langBtn.id = "langBtn";
-        langBtn.style.cssText = "background: transparent; color: #00BFFF; border: 1px solid #00BFFF; border-radius: 3px; font-size: 10px; padding: 3px 8px; margin-left: auto; cursor: pointer; font-weight: bold;";
-        langBtn.textContent = currentLang === 'ua' ? "🌍 ENG" : "🌍 УКР";
+        langBtn.style.cssText = "background: transparent; color: #00BFFF; border: 1px solid #00BFFF; border-radius: 3px; font-size: 10px; padding: 4px 8px; cursor: pointer; font-weight: bold; font-family: monospace;";
+        langBtn.innerHTML = currentLang === 'ua' ? "🌍 ENG" : "🌍 УКР";
         langBtn.onclick = () => { currentLang = currentLang === 'ua' ? 'en' : 'ua'; localStorage.setItem('dresden_lang', currentLang); applyLangToUI(); };
-        topBar.appendChild(langBtn);
+        topBarContainer.appendChild(langBtn);
     }
 
     window.addEventListener('popstate', (e) => {
@@ -456,7 +471,13 @@ document.addEventListener("DOMContentLoaded", () => {
         
         history.pushState(null, null, location.href); await deriveSessionKey(v); initWS(); 
         
-        if (topBar && !document.getElementById("lockBtn")) { const lockBtn = document.createElement("button"); lockBtn.id = "lockBtn"; lockBtn.textContent = t('btn_lock'); lockBtn.style.cssText = "background: transparent; color: #FFD60A; border: 1px solid #FFD60A; border-radius: 3px; font-size: 10px; padding: 3px 8px; margin-left: 5px; cursor: pointer; font-weight: bold;"; lockBtn.onclick = () => history.back(); topBar.appendChild(lockBtn); }
+        if (document.getElementById('topButtons') && !document.getElementById("lockBtn")) { 
+            const lockBtn = document.createElement("button"); lockBtn.id = "lockBtn"; 
+            lockBtn.innerHTML = "🔒 " + t('btn_lock'); 
+            lockBtn.style.cssText = "background: transparent; color: #FFD60A; border: 1px solid #FFD60A; border-radius: 3px; font-size: 10px; padding: 4px 8px; cursor: pointer; font-weight: bold; font-family: monospace;"; 
+            lockBtn.onclick = () => history.back(); 
+            document.getElementById('topButtons').appendChild(lockBtn); 
+        }
     });
 
     bind("videoModeBtn", () => { if (mediaMode === 'audio') mediaMode = 'video'; else if (mediaMode === 'video') mediaMode = 'data'; else mediaMode = 'audio'; vibrate(30); const btn = document.getElementById("videoModeBtn"); if (mediaMode === 'video') { btn.textContent = t('btn_video_on'); btn.style.color = "#39FF14"; btn.style.borderColor = "#39FF14"; } else if (mediaMode === 'data') { btn.textContent = t('btn_chat_only'); btn.style.color = "#00BFFF"; btn.style.borderColor = "#00BFFF"; } else { btn.textContent = t('btn_audio_only'); btn.style.color = "#FFD60A"; btn.style.borderColor = "#333"; } });
@@ -472,7 +493,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (smsInbox.length === 0) { 
             document.getElementById("smsOverlay").style.display = "none";
             document.getElementById("smsOverlay").classList.add("hidden");
-            document.getElementById("smsContent").textContent = ""; currentSms = null; 
+            document.getElementById("smsContent").innerHTML = ""; currentSms = null; 
             document.getElementById("readSmsBtn").style.display = "none";
             document.getElementById("readSmsBtn").classList.add("hidden");
             return; 
@@ -481,7 +502,11 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("smsOverlay").style.display = "flex";
         document.getElementById("smsOverlay").classList.remove("hidden");
         
-        const sc = document.getElementById("smsContent"); sc.textContent = `[${t('push_from')}: ${currentSms.from}]\n\n${currentSms.txt}`; sc.style.display = "block"; 
+        const sc = document.getElementById("smsContent"); 
+        sc.innerHTML = `<span class="sms-sender-id">[ВІДПРАВНИК: ${currentSms.from}]</span><span id="smsTextBody"></span>`;
+        document.getElementById("smsTextBody").textContent = currentSms.txt;
+        sc.style.display = "block"; 
+        
         document.getElementById("readSmsBtn").style.display = "none";
         document.getElementById("readSmsBtn").classList.add("hidden");
         const bb = document.getElementById("burnSmsBtn"); bb.classList.remove("hidden"); bb.textContent = smsInbox.length > 0 ? `${t('ui_burn_next')} (${smsInbox.length})` : t('ui_burn_sms'); 
@@ -536,7 +561,6 @@ function resetToDialer() {
 
 function appendMsg(t, cls, isGeo = false) { const chat = document.getElementById("chatMessages"); if(!chat) return; const d = document.createElement("div"); d.className = `msg ${cls}`; if (isGeo || t.includes("maps?q=")) { const link = t.match(/https?:\/\/[^\s]+/)?.[0] || t; d.classList.add("geo-msg"); d.innerHTML = `📍 <a href="${link}" target="_blank" style="color:inherit;text-decoration:none;font-weight:bold;">TACTICAL GEOTAG</a>`; } else { d.textContent = t; } chat.appendChild(d); chat.scrollTop = chat.scrollHeight; }
 
-// 🔥 ФІКС ДЛЯ APK: Вбудована галерея без використання window.open
 function showImageViewer(url) {
     let viewer = document.getElementById('imageViewerModal');
     if (!viewer) {
@@ -566,7 +590,7 @@ function appendImage(url, cls) {
     const chat = document.getElementById("chatMessages"); if(!chat) return; 
     const d = document.createElement("div"); d.className = `msg ${cls} img-msg`; 
     const img = new Image(); img.src = url; img.style.maxWidth = "200px"; img.style.borderRadius = "8px"; 
-    img.onclick = () => showImageViewer(url); // Викликає вбудоване вікно, а не нову вкладку браузера
+    img.onclick = () => showImageViewer(url); 
     d.appendChild(img); chat.appendChild(d); chat.scrollTop = chat.scrollHeight; 
 }
 
