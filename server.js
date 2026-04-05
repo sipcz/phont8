@@ -4,7 +4,12 @@ const WebSocket = require('ws');
 const helmet = require('helmet');
 
 const app = express();
-app.use(helmet()); // Захист HTTP-заголовків від хакерів
+
+// ФІКС БЕЗПЕКИ: Вимикаємо CSP в Helmet, щоб він не блокував наш інтерфейс та WebRTC
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// ФІКС "Cannot GET /": Кажемо серверу віддавати файли index.html та script.js
+app.use(express.static(__dirname));
 
 const server = http.createServer(app);
 // Ліміт на розмір повідомлення: 50 КБ (Захист від переповнення пам'яті)
