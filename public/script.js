@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v123.0 [TITAN VISUAL FIX]
+ * DRESDEN TACTICAL SYSTEM v125.0 [TITAN PUSH FIX]
  * STATUS: MULTILANGUAGE + ROCK SOLID
- * FIX: INVISIBLE INCOMING CALLS/SMS, MISSING ONLINE COUNTER
+ * FIX: PUSH NOTIFICATIONS RESTORED (SYNC PERMISSION FIX)
  * ============================================================
  */
 
@@ -89,8 +89,21 @@ function applyLangToUI() {
 })();
 
 const DURESS_KEY = "1234567890"; const CRYPTO_SALT = "DRESDEN_V56_ETERNAL_STABILITY"; const PBKDF2_ITERATIONS = 500000; const MAX_IMAGE_DIMENSION = 1600;
-let stunIndex = 0; const stunPool = ["stun:stun.l.google.com:19302", "stun:stun.relay.metered.ca:80"];
-const turnPool = [ { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" }, { urls: "turn:global.relay.metered.ca:443?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" }, { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" }, { urls: "turn:global.relay.metered.ca:80", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" } ];
+
+const stunPool = [
+    "stun:stun.l.google.com:19302",
+    "stun:stun1.l.google.com:19302",
+    "stun:stun.cloudflare.com:3478",
+    "stun:global.stun.twilio.com:3478",
+    "stun:stun.relay.metered.ca:80"
+];
+
+const turnPool = [
+    { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" },
+    { urls: "turn:global.relay.metered.ca:443?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" },
+    { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" },
+    { urls: "turn:global.relay.metered.ca:80", username: "47cb64adbdb8e06d4a9f49e4", credential: "dBogKCNAumjDBInn" }
+];
 
 let ws = null, pc = null, dc = null, stream = null, remoteNum = null, cryptoKey = null;
 let iceQueue = [], pendingOffer = null, isBusy = false, isMuted = false, isRelayMode = false;
@@ -112,7 +125,6 @@ const SystemIntel = {
     init() { 
         if (navigator.connection) { this.updateNet(); navigator.connection.addEventListener('change', () => this.updateNet()); setInterval(() => this.updateNet(), 3000); } 
         else { this.networkType = 'secure'; this.updateUI(); } 
-        try { if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") { Notification.requestPermission(); } } catch(e) {}
     },
     updateUI() { 
         let badge = document.getElementById('netBadge'); 
@@ -126,8 +138,15 @@ const SystemIntel = {
     getCallTimeout() { return (this.networkType.includes('2g')) ? 45000 : 20000; }
 };
 
+// 🔥 ФІКС ПУШІВ: Додана вібрація для надійності
 function sendPush(title, message) {
-    try { if (window.AndroidAudio && typeof window.AndroidAudio.showNotification === 'function') { window.AndroidAudio.showNotification(title, message); } else if (typeof Notification !== 'undefined' && Notification.permission === "granted") { new Notification(title, { body: message }); } } catch(e) {}
+    try { 
+        if (window.AndroidAudio && typeof window.AndroidAudio.showNotification === 'function') { 
+            window.AndroidAudio.showNotification(title, message); 
+        } else if (typeof Notification !== 'undefined' && Notification.permission === "granted") { 
+            new Notification(title, { body: message, vibrate: [200, 100, 200] }); 
+        } 
+    } catch(e) {}
 }
 
 function setStatus(text, color) { const el = document.getElementById("status"); if (el) { el.textContent = text; el.style.color = color || "#39FF14"; } }
@@ -203,11 +222,29 @@ function initWS() {
 }
 
 async function initPC(relay = false) {
-    isBusy = true; gatheredRelay = false; let iceConfig = [];
-    if (relay) { iceConfig = [...turnPool]; } else { const activeStun = stunPool[stunIndex % stunPool.length]; stunIndex++; iceConfig = [{ urls: activeStun }, turnPool[0]]; }
-    pc = new RTCPeerConnection({ iceServers: iceConfig, iceTransportPolicy: 'all', bundlePolicy: 'max-bundle', iceCandidatePoolSize: 10, rtcpMuxPolicy: "require" });
+    isBusy = true; gatheredRelay = false; 
+    let iceConfig = [];
+
+    if (relay) { 
+        iceConfig = turnPool; 
+    } else { 
+        const shuffledStun = [...stunPool].sort(() => 0.5 - Math.random()).slice(0, 3);
+        iceConfig = [{ urls: shuffledStun }, ...turnPool]; 
+    }
+
+    const policy = relay ? 'relay' : 'all';
+
+    pc = new RTCPeerConnection({ 
+        iceServers: iceConfig, 
+        iceTransportPolicy: policy, 
+        bundlePolicy: 'max-bundle', 
+        iceCandidatePoolSize: 10, 
+        rtcpMuxPolicy: "require" 
+    });
+
     if (connectionTimeout) clearTimeout(connectionTimeout); const dynTimeout = SystemIntel.getCallTimeout();
     connectionTimeout = setTimeout(() => { if (pc && pc.iceConnectionState !== "connected") { setStatus(t('timeout'), "red"); if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); } }, dynTimeout); 
+    
     pc.onicecandidate = (e) => { 
         if (e.candidate && remoteNum) {
             if (e.candidate.candidate.includes('typ relay')) gatheredRelay = true;
@@ -215,13 +252,16 @@ async function initPC(relay = false) {
             if (!iceFlushTimer) { const batchTime = SystemIntel.networkType.includes('2g') ? 1500 : 300; iceFlushTimer = setTimeout(async () => { const cands = [...localIceQueue]; localIceQueue = []; iceFlushTimer = null; sendWS({ type: "ice_batch", to: remoteNum, payload: await encrypt({ cands }) }); }, batchTime); }
         }
     };
+    
     pc.oniceconnectionstatechange = () => {
         if (pc.iceConnectionState === "connected") { 
             setStatus(t('secure_link'), "#39FF14"); if (connectionTimeout) clearTimeout(connectionTimeout); if (!callTimerInterval) startCallTimer(); 
             try { if (mediaMode === 'audio' && window.AndroidAudio && typeof window.AndroidAudio.setProximityEnabled === 'function') { window.AndroidAudio.setProximityEnabled(true); } } catch(e) {}
         } else if (["failed", "closed"].includes(pc.iceConnectionState)) { resetToDialer(); }
     };
+    
     pc.ontrack = (e) => { const el = e.track.kind === 'video' ? document.getElementById("remoteVideo") : document.getElementById("audio"); if (el) { el.srcObject = e.streams[0]; el.style.display = "block"; el.play().catch(()=>{}); if (isEarpieceMode) applyAudioHack(); } };
+    
     try { 
         if (mediaMode !== 'data') { const dynConstraints = SystemIntel.getVideoConstraints(); stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: mediaMode === 'video' ? dynConstraints : false });
             if (mediaMode === 'video') { const lv = document.getElementById("localVideo"); lv.srcObject = stream; lv.style.display = "block"; } stream.getTracks().forEach(t => pc.addTrack(t, stream)); 
@@ -320,6 +360,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     bind("startBtn", async () => { 
+        
+        // 🔥 ФІКС ПУШІВ: Запит дозволу рівно в момент кліку користувача (До шифрування!), інакше браузер заблокує
+        try { 
+            if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") { 
+                Notification.requestPermission(); 
+            } 
+        } catch(e) {}
+
         const v = document.getElementById("passInput").value; 
         
         if (v.length < 4) {
