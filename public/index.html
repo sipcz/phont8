@@ -1,98 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <link rel="manifest" href="manifest.json">
     <title>DRESDEN TACTICAL</title>
-    <style>.hidden { display: none !important; }</style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body style="background:#000; color:#39FF14; font-family:monospace; margin:0; padding:0; display:flex; flex-direction:column; height:100vh; overflow: hidden;">
+<body>
+    <div class="scanlines"></div>
 
-    <div id="loginScreen" class="screen-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%; position:absolute; top:0; left:0; background:#000; z-index:10000;">
-        <h2 style="color:#FFD60A; letter-spacing: 3px; text-shadow: 0 0 10px #FFD60A; margin-bottom: 30px;">DRESDEN OS</h2>
-        <div style="width: 80%; max-width: 350px; display: flex; flex-direction: column; gap: 15px;">
-            <input type="password" id="passInput" class="tactical-input" placeholder="Passcode" style="letter-spacing: 5px; font-size: 24px; text-align: center;">
-            <button id="startBtn" class="tactical-btn primary-btn">START</button>
+    <div class="app-container">
+        <div id="loginScreen" class="screen-container login-screen">
+            <h2 class="glitch-title">DRESDEN OS</h2>
+            <div class="tactical-panel login-panel">
+                <input type="password" id="passInput" class="tactical-input center-input" placeholder="Пароль доступу">
+                <button id="startBtn" class="tactical-btn primary-btn full-width">УВІЙТИ</button>
+            </div>
+        </div>
+
+        <div id="mainApp" class="hidden main-app-layout">
+            <div class="top-bar">
+                <div class="flex-center">
+                    <span class="id-label">ID: <strong id="myNum" class="id-value">---</strong></span>
+                </div>
+                <div class="status-container">
+                    <span id="status" class="status-text">ГОТОВО</span>
+                    <span class="peers-label">PEERS: <span id="userCount">0</span></span>
+                </div>
+            </div>
+
+            <div id="dialerUI" class="dialer-container">
+                <div class="tactical-panel">
+                    <div class="input-wrapper">
+                        <span class="tactical-label" id="lblTarget">🎯 ІДЕНТИФІКАТОР ЦІЛІ</span>
+                        <input type="tel" id="targetNum" class="tactical-input target-input" placeholder="Номер абонента" autocomplete="off">
+                    </div>
+                    
+                    <button id="videoModeBtn" class="tactical-btn toggle-btn mode-btn">📞 ТІЛЬКИ АУДІО</button>
+                    <button id="relayToggle" class="tactical-btn toggle-btn stealth-btn">🛰 СТЕЛС: ВИМК</button>
+
+                    <button id="callBtn" class="tactical-btn primary-btn huge-btn full-width call-margin">ДЗВІНОК</button>
+                    
+                    <div class="input-wrapper">
+                        <span class="tactical-label sms-label" id="lblMsg">✉️ ПАКЕТ ДАНИХ (SMS)</span>
+                        <input type="text" id="preCallMsg" class="tactical-input sms-input" placeholder="Текст SMS (Офлайн)...">
+                    </div>
+                    
+                    <div class="action-grid">
+                        <button id="smsBtn" class="tactical-btn secondary-btn">ВІДПРАВИТИ SMS</button>
+                        <button id="readSmsBtn" class="tactical-btn read-sms-btn hidden">✉️ ВХІДНІ</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="activeCallUI" class="hidden active-call-layout">
+                <div class="video-container">
+                    <video id="remoteVideo" autoplay playsinline class="hidden"></video>
+                    <video id="localVideo" autoplay playsinline muted class="hidden"></video>
+                    <audio id="audio" autoplay playsinline></audio>
+                </div>
+                
+                <div class="call-info-bar">
+                    <span class="link-label">LINK: <strong id="remoteIdDisplay" class="link-value"></strong></span>
+                    <span id="callTimer" class="timer-text">00:00</span>
+                </div>
+
+                <div id="fileProgress" class="hidden progress-container">
+                    <div class="progress-header">
+                        <span id="progText">ПЕРЕДАЧА</span> <span id="filePercent">0%</span>
+                    </div>
+                    <div class="progress-track"><div id="progBar" class="progress-fill"></div></div>
+                </div>
+
+                <div id="chatMessages" class="chat-box"></div>
+
+                <div class="chat-input-area">
+                    <input type="text" id="msgInput" placeholder="Message..." class="tactical-input msg-input-field">
+                    <button id="sendBtn" class="tactical-btn primary-btn send-msg-btn">SEND</button>
+                </div>
+
+                <div class="call-controls">
+                    <button id="muteBtn" class="btn-sub">🎤 ON</button>
+                    <button id="scrambleBtn" class="btn-sub">🎭 NORMAL</button>
+                    <button id="geoBtn" class="btn-sub geo-btn-style">GEO</button>
+                    <button id="photoBtn" class="btn-sub photo-btn-style">FILE</button>
+                    <button id="burnBtn" class="btn-sub burn-btn-style">BURN</button>
+                    <button id="hangBtn" class="btn-sub hang-btn-style">ЗАВЕРШИТИ</button>
+                </div>
+                <input type="file" id="fileInp" class="hidden">
+            </div>
+            
+            <div id="incomingUI" class="hidden incoming-overlay">
+                <div class="tactical-panel incoming-panel">
+                    <h2 class="incoming-title">ВХІДНИЙ ЗВ'ЯЗОК</h2>
+                    <div id="callerId" class="caller-id-display">---</div>
+                    <div id="incomingPaging" class="incoming-paging-text"></div>
+                    
+                    <div class="action-grid">
+                        <button id="declineBtn" class="tactical-btn danger-btn">ВІДХИЛИТИ</button>
+                        <button id="acceptBtn" class="tactical-btn primary-btn">ПРИЙНЯТИ</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="smsOverlay" class="hidden sms-overlay-box">
+                <h3 class="sms-overlay-title">ОТРИМАНО ПАКЕТ</h3>
+                <div id="smsContent" class="sms-content-box"></div>
+                <button id="burnSmsBtn" class="tactical-btn danger-btn full-width">ЗНИЩИТИ SMS</button>
+            </div>
         </div>
     </div>
 
-    <div id="mainApp" class="hidden screen-container" style="flex-direction:column; height:100%; width:100%;">
-        <div class="top-bar">
-            <span>ID: <b id="myNum" style="font-size: 16px;">...</b> [<span id="userCount" style="color:#00BFFF;">0</span> 🌍]</span>
-            <span id="status" style="color:#FFD60A; font-weight: bold;">READY</span>
-        </div>
-        
-        <div id="dialerUI" class="dialer-container">
-            <div class="tactical-panel">
-                <div class="input-wrapper">
-                    <label id="lblTarget" class="tactical-label">🎯 ІДЕНТИФІКАТОР ЦІЛІ</label>
-                    <input type="number" id="targetNum" class="tactical-input target-input" placeholder="XXXXXX">
-                </div>
-                <div class="input-wrapper" style="margin-top: 20px;">
-                    <label id="lblMsg" class="tactical-label sms-label">✉️ ПАКЕТ ДАНИХ (SMS)</label>
-                    <input type="text" id="preCallMsg" class="tactical-input sms-input" placeholder="...">
-                </div>
-            </div>
-            
-            <div class="action-grid" style="margin-top: 25px;">
-                <button id="callBtn" class="tactical-btn primary-btn huge-btn">ДЗВІНОК</button>
-                <button id="smsBtn" class="tactical-btn secondary-btn huge-btn">ВІДПРАВИТИ SMS</button>
-            </div>
-            
-            <div class="action-grid" style="margin-top: 15px;">
-                <button id="videoModeBtn" class="tactical-btn toggle-btn">📞 AUDIO ONLY</button>
-                <button id="relayToggle" class="tactical-btn toggle-btn">🛰 STEALTH: OFF</button>
-            </div>
-            
-            <button id="readSmsBtn" class="hidden tactical-btn warning-btn" style="margin-top: 25px; width: 100%;">✉️ INBOX</button>
-        </div>
-
-        <div id="incomingUI" class="hidden" style="flex-direction:column; align-items:center; justify-content:center; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.98); z-index:9999;">
-            <h2 style="color:#FFD60A; letter-spacing: 2px;">INCOMING LINK</h2>
-            <h1 id="callerId" style="color:#39FF14; font-size: 40px; text-shadow: 0 0 20px #39FF14;"></h1>
-            <p id="incomingPaging" style="color:#FFD60A; text-align:center; padding:10px; font-size: 16px;"></p>
-            <div style="display:flex; gap:20px; margin-top:30px;">
-                <button id="acceptBtn" class="tactical-btn primary-btn" style="padding: 20px 40px;">ACCEPT</button>
-                <button id="declineBtn" class="tactical-btn danger-btn" style="padding: 20px 40px;">DECLINE</button>
-            </div>
-        </div>
-
-        <div id="smsOverlay" class="hidden" style="display:flex; flex-direction:column; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:400px; background:#050505; border:2px solid #00BFFF; box-shadow: 0 0 30px rgba(0,191,255,0.3); padding:20px; z-index:9999; border-radius: 8px; box-sizing: border-box;">
-            <pre id="smsContent" style="white-space:pre-wrap; word-wrap:break-word; color:#00BFFF; font-size: 16px; margin: 0 0 20px 0;"></pre>
-            <button id="burnSmsBtn" class="tactical-btn danger-btn" style="width:100%;">BURN SMS</button>
-        </div>
-
-        <div id="activeCallUI" class="hidden">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <video id="localVideo" autoplay playsinline muted></video>
-            <audio id="audio" autoplay></audio>
-            
-            <div id="fileProgress" class="hidden" style="width:100%; padding:5px; background:#111; font-size:10px; box-sizing: border-box;">
-                <span id="progText">TRANSFER</span>: <span id="filePercent">0%</span>
-                <div style="width:100%; height:5px; background:#333; margin-top:3px;"><div id="progBar" style="width:0%; height:100%; background:#39FF14;"></div></div>
-            </div>
-
-            <div id="chatMessages"></div>
-
-            <div class="chat-input" style="display:flex;">
-                <input type="text" id="msgInput" placeholder="Message..." style="flex:1; background:#111; color:#39FF14; border:1px solid #333; padding:10px; font-family: monospace; outline: none;">
-                <button id="sendBtn" style="background:#111; color:#39FF14; border:1px solid #333; padding:10px 20px; font-weight: bold; cursor: pointer;">SEND</button>
-            </div>
-
-            <div class="call-controls">
-                <button id="muteBtn" class="btn-sub" style="color:#39FF14;">🎤 ON</button>
-                <button id="scrambleBtn" class="btn-sub" style="color:#39FF14;">🎭 NORMAL</button>
-                <button id="geoBtn" class="btn-sub" style="color:#FFD60A;">GEO</button>
-                <button id="photoBtn" class="btn-sub" style="color:#00BFFF;">FILE</button>
-                <button id="burnBtn" class="btn-sub" style="color:red; border-color:red;">BURN</button>
-                <button id="hangBtn" class="btn-sub" style="color:red; border-color:red; flex-basis:100%; font-size: 14px !important;">HANG UP <span id="callTimer">00:00</span></button>
-            </div>
-            <input type="file" id="fileInp" style="display:none;">
-        </div>
-    </div>
-
-    <script src="script.js?v=132"></script>
+    <script src="script.js"></script>
 </body>
 </html>
