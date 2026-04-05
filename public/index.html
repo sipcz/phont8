@@ -20,37 +20,29 @@
         </div>
 
         <div id="mainApp" class="hidden main-app-layout">
-            <div class="top-bar">
-                <div class="flex-center">
-                    <span class="id-label">ID: <strong id="myNum" class="id-value">---</strong></span>
+            
+            <div class="top-bar" id="topBarContainer">
+                <div class="status-area">
+                    <span style="color:#39FF14;">ID: <strong id="myNum">---</strong></span>
+                    <span style="color:#00BFFF; margin: 0 4px;">[<span id="userCount">0</span> 🌍]</span>
+                    <span id="status" style="color:#39FF14; font-weight:bold; margin-left:6px; text-transform:uppercase;">ГОТОВО</span>
                 </div>
-                <div class="status-container">
-                    <span id="status" class="status-text">ГОТОВО</span>
-                    <span class="peers-label">PEERS: <span id="userCount">0</span></span>
-                </div>
+                <div id="topButtons" style="display:flex; gap:5px; align-items:center;"></div>
             </div>
 
             <div id="dialerUI" class="dialer-container">
                 <div class="tactical-panel">
-                    <div class="input-wrapper">
-                        <span class="tactical-label" id="lblTarget">🎯 ІДЕНТИФІКАТОР ЦІЛІ</span>
-                        <input type="tel" id="targetNum" class="tactical-input target-input" placeholder="Номер абонента" autocomplete="off">
-                    </div>
+                    <input type="tel" id="targetNum" class="tactical-input target-input" placeholder="Номер абонента" autocomplete="off">
+                    <input type="text" id="preCallMsg" class="tactical-input sms-input" placeholder="Текст SMS (Офлайн)...">
                     
-                    <button id="videoModeBtn" class="tactical-btn toggle-btn mode-btn">📞 ТІЛЬКИ АУДІО</button>
-                    <button id="relayToggle" class="tactical-btn toggle-btn stealth-btn">🛰 СТЕЛС: ВИМК</button>
-
-                    <button id="callBtn" class="tactical-btn primary-btn huge-btn full-width call-margin">ДЗВІНОК</button>
-                    
-                    <div class="input-wrapper">
-                        <span class="tactical-label sms-label" id="lblMsg">✉️ ПАКЕТ ДАНИХ (SMS)</span>
-                        <input type="text" id="preCallMsg" class="tactical-input sms-input" placeholder="Текст SMS (Офлайн)...">
-                    </div>
-                    
-                    <div class="action-grid">
+                    <div class="action-grid" style="margin-top: 15px;">
+                        <button id="callBtn" class="tactical-btn primary-btn">ДЗВІНОК</button>
                         <button id="smsBtn" class="tactical-btn secondary-btn">ВІДПРАВИТИ SMS</button>
-                        <button id="readSmsBtn" class="tactical-btn read-sms-btn hidden">✉️ ВХІДНІ</button>
+                        <button id="videoModeBtn" class="tactical-btn toggle-btn mode-btn">📞 ТІЛЬКИ АУДІО</button>
+                        <button id="relayToggle" class="tactical-btn toggle-btn stealth-btn">🛰 СТЕЛС: ВИМК</button>
                     </div>
+                    
+                    <button id="readSmsBtn" class="tactical-btn read-sms-btn hidden" style="margin-top: 15px;">✉️ ВХІДНІ</button>
                 </div>
             </div>
 
@@ -76,16 +68,16 @@
                 <div id="chatMessages" class="chat-box"></div>
 
                 <div class="chat-input-area">
-                    <input type="text" id="msgInput" placeholder="Message..." class="tactical-input msg-input-field">
-                    <button id="sendBtn" class="tactical-btn primary-btn send-msg-btn">SEND</button>
+                    <input type="text" id="msgInput" placeholder="Повідомлення..." class="tactical-input msg-input-field">
+                    <button id="sendBtn" class="tactical-btn primary-btn send-msg-btn">НАДІСЛАТИ</button>
                 </div>
 
                 <div class="call-controls">
-                    <button id="muteBtn" class="btn-sub">🎤 ON</button>
-                    <button id="scrambleBtn" class="btn-sub">🎭 NORMAL</button>
-                    <button id="geoBtn" class="btn-sub geo-btn-style">GEO</button>
-                    <button id="photoBtn" class="btn-sub photo-btn-style">FILE</button>
-                    <button id="burnBtn" class="btn-sub burn-btn-style">BURN</button>
+                    <button id="muteBtn" class="btn-sub">🎤 УВІМК</button>
+                    <button id="scrambleBtn" class="btn-sub">🎭 НОРМАЛЬНИЙ</button>
+                    <button id="geoBtn" class="btn-sub geo-btn-style">ГЕО</button>
+                    <button id="photoBtn" class="btn-sub photo-btn-style">ФОТО</button>
+                    <button id="burnBtn" class="btn-sub burn-btn-style">ЗНИЩИТИ</button>
                     <button id="hangBtn" class="btn-sub hang-btn-style">ЗАВЕРШИТИ</button>
                 </div>
                 <input type="file" id="fileInp" class="hidden">
@@ -105,7 +97,9 @@
             </div>
             
             <div id="smsOverlay" class="hidden sms-overlay-box">
-                <h3 class="sms-overlay-title">ОТРИМАНО ПАКЕТ</h3>
+                <div class="sms-header">
+                    <h3 class="sms-overlay-title">ОТРИМАНО ПАКЕТ</h3>
+                </div>
                 <div id="smsContent" class="sms-content-box"></div>
                 <button id="burnSmsBtn" class="tactical-btn danger-btn full-width">ЗНИЩИТИ SMS</button>
             </div>
