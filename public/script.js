@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v136.0 [NETWORK RESILIENCE FIX]
+ * DRESDEN TACTICAL SYSTEM v137.0 [SECURE P2P CORE]
  * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + DYNAMIC BWE
- * FIX: ZOMBIE CONNECTIONS, ICE RESTART, DYNAMIC VIDEO CONSTRAINTS
+ * FIX: ZOMBIE CONNECTIONS, ICE RESTART, DEVICE TOKENS
  * ============================================================
  */
 
@@ -28,7 +28,7 @@ const DICT = {
         ui_pass: "Пароль доступу", ui_start: "УВІЙТИ", ui_target: "Номер абонента", ui_call: "ДЗВІНОК", ui_sms_btn: "ВІДПРАВИТИ SMS", 
         ui_msg_inp: "Повідомлення...", ui_send: "НАДІСЛАТИ", ui_accept: "ПРИЙНЯТИ", ui_decline: "ВІДХИЛИТИ", ui_hang: "ЗАВЕРШИТИ", 
         ui_photo: "ФОТО", ui_geo: "ГЕО", ui_burn: "ЗНИЩИТИ", ui_pre_sms: "Текст SMS (Офлайн)...", ui_read_sms: "✉️ ВХІДНІ", 
-        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 4 СИМВОЛІВ!",
+        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 8 СИМВОЛІВ!",
         ui_lbl_target: "🎯 ІДЕНТИФІКАТОР ЦІЛІ", ui_lbl_msg: "✉️ ПАКЕТ ДАНИХ (SMS)", ui_inc_link: "ВХІДНИЙ ЗВ'ЯЗОК"
     },
     'en': {
@@ -47,7 +47,7 @@ const DICT = {
         ui_pass: "Passcode", ui_start: "START", ui_target: "Target Number", ui_call: "CALL", ui_sms_btn: "SEND SMS", 
         ui_msg_inp: "Message...", ui_send: "SEND", ui_accept: "ACCEPT", ui_decline: "DECLINE", ui_hang: "HANG UP", 
         ui_photo: "PHOTO", ui_geo: "GEO", ui_burn: "BURN", ui_pre_sms: "SMS Text (Offline)...", ui_read_sms: "✉️ INBOX", 
-        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 4 CHARS!",
+        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 8 CHARS!",
         ui_lbl_target: "🎯 TARGET IDENTIFIER", ui_lbl_msg: "✉️ DATA PACKET (SMS)", ui_inc_link: "INCOMING LINK"
     }
 };
@@ -130,7 +130,7 @@ const turnPool = [
 ];
 
 let ws = null, pc = null, dc = null, stream = null, remoteNum = null, cryptoKey = null;
-let iceQueue = [], pendingOffer = null, isBusy = false, isMuted = false, isRelayMode = false;
+let iceQueue = [], pendingOffer = null, isBusy = false, isMuted = false, isRelayMode = false; // Збережено Stealth: OFF
 let callSeconds = 0, callTimerInterval = null, wsPingInterval = null, connectionTimeout = null, handshakeInterval = null;
 let mediaMode = 'audio', isSystemInitialized = false, isEarpieceMode = false;
 let localIceQueue = [], iceFlushTimer = null, gatheredRelay = false; 
@@ -138,6 +138,13 @@ let smsInbox = [], currentSms = null, sendQueue = [], isProcessingQueue = false;
 let incomingFile = { name: "", chunks: [], total: 0, received: 0, type: "" };
 let audioCtx = null, micSource = null, distortionNode = null, isScrambled = false;
 const ringtone = new Audio("ringtone.mp3"); ringtone.loop = true;
+
+// 🔥 АНТИ-HIJACK: Генерація та збереження унікального токена пристрою
+let deviceToken = localStorage.getItem('dresden_device_token');
+if (!deviceToken) {
+    deviceToken = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substr(2));
+    localStorage.setItem('dresden_device_token', deviceToken);
+}
 
 let pendingSmsList = [];
 try { pendingSmsList = JSON.parse(localStorage.getItem('dresden_sms_queue') || '[]'); } catch(e) { localStorage.removeItem('dresden_sms_queue'); }
@@ -227,7 +234,8 @@ function initWS() {
     if (!isSystemInitialized || (ws && ws.readyState < 2)) return;
     ws = new WebSocket("wss://phont8.onrender.com");
     ws.onopen = () => { 
-        sendWS({ type: "register", number: localStorage.getItem("my_id") }); 
+        // 🔥 Передаємо токен пристрою серверу для авторизації номера
+        sendWS({ type: "register", number: localStorage.getItem("my_id"), token: deviceToken }); 
         setStatus(t('online'), "#39FF14"); 
         if(wsPingInterval) clearInterval(wsPingInterval); wsPingInterval = setInterval(() => { sendWS({ type: "ping" }); }, 15000); 
         if(smsQueueInterval) clearInterval(smsQueueInterval); smsQueueInterval = setInterval(flushSmsQueue, 30000); 
@@ -240,6 +248,13 @@ function initWS() {
         
         if (d.type === "your_number") { localStorage.setItem("my_id", d.number); document.getElementById("myNum").textContent = d.number; return; }
         if (d.type === "user_count") { const uc = document.getElementById("userCount"); if (uc) uc.textContent = d.count; return; }
+        
+        // Помилка авторизації
+        if (d.type === "error" && d.msg === "HIJACK_BLOCKED") {
+            alert("⚠️ ПОМИЛКА БЕЗПЕКИ: Цей номер вже використовується іншим пристроєм.");
+            localStorage.removeItem("my_id"); // Скидаємо номер, щоб отримати новий
+            return;
+        }
         
         if (d.type === "peer_offline") { 
             if (d.to && remoteNum && d.to !== remoteNum) return;
@@ -264,7 +279,6 @@ function initWS() {
                 if (d.mode === 'data') { vibrate([100, 50, 100]); } else { vibrate([500, 100, 500]); ringtone.play().catch(()=>{}); } break;
             case "offer": 
                 pendingOffer = d.offer; 
-                // Обробка ICE Restart (перепідключення) "на льоту" під час активного дзвінка
                 if (pc && pc.signalingState !== "closed") {
                     try {
                         await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
@@ -319,7 +333,6 @@ async function initPC(relay = false) {
         }
     };
     
-    // 🔥 ФІКС 2: Безшовне перемикання та ICE Restart замість обриву дзвінка
     pc.oniceconnectionstatechange = async () => {
         if (pc.iceConnectionState === "connected") { 
             setStatus(t('secure_link'), "#39FF14"); 
@@ -328,13 +341,11 @@ async function initPC(relay = false) {
             try { if (mediaMode === 'audio' && window.AndroidAudio && typeof window.AndroidAudio.setProximityEnabled === 'function') { window.AndroidAudio.setProximityEnabled(true); } } catch(e) {}
         } else if (pc.iceConnectionState === "disconnected") {
             setStatus("⏳ РЕКОНЕКТ...", "#FFD60A");
-            // Даємо 15 секунд на автоматичне відновлення (наприклад, зміна базової станції)
             if (connectionTimeout) clearTimeout(connectionTimeout);
             connectionTimeout = setTimeout(() => {
                 if (pc && pc.iceConnectionState !== "connected") resetToDialer();
             }, 15000);
         } else if (pc.iceConnectionState === "failed") { 
-            // Ініціюємо ICE Restart (генеруємо новий Offer з новими IP)
             setStatus("📡 ICE RESTART...", "#FFD60A");
             try {
                 if (pc && remoteNum) {
@@ -424,7 +435,6 @@ function toggleMute() { if (!stream) return; isMuted = !isMuted; stream.getAudio
 document.addEventListener("DOMContentLoaded", () => {
     applyLangToUI(); 
     
-    // Агресивне відновлення при виході з фонового режиму (Mobile Lifecycle)
     document.addEventListener("visibilitychange", () => { 
         if (document.visibilityState === 'visible' && isSystemInitialized) {
             if (!ws || ws.readyState !== WebSocket.OPEN) initWS();
@@ -475,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     bind("startBtn", async () => { 
         const v = document.getElementById("passInput").value; 
-        if (v.length < 4) {
+        if (v.length < 8) { // 🔥 ЗМІНА: Вимагаємо мінімум 8 символів
             const inp = document.getElementById("passInput"); inp.style.borderColor = "red"; inp.style.color = "red"; inp.value = ""; inp.placeholder = t('pass_short');
             setTimeout(() => { inp.style.borderColor = "#39FF14"; inp.style.color = "#39FF14"; inp.placeholder = t('ui_pass'); }, 2000); return;
         }
