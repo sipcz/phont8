@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v140.0 [FINAL SECURE CORE + UI FIX]
+ * DRESDEN TACTICAL SYSTEM v141.0 [FINAL SECURE CORE + MOBILE LOGIC]
  * STATUS: ANTI-HIJACK + ZERO-TRUST CRYPTO + DYNAMIC BWE
  * FIX: DOM SAFE SMS MODAL, APK MODALS, UI STYLING, SELF-CALL BLOCK
  * ============================================================
@@ -11,7 +11,6 @@
 let currentLang = 'ua';
 try { currentLang = localStorage.getItem('dresden_lang') || 'ua'; } catch(e) {}
 
-// 🔥 ПОВЕРНУТО ВСІ КЛЮЧІ ПЕРЕКЛАДУ
 const DICT = {
     'ua': {
         online: "В МЕРЕЖІ", offline: "🔴 ОФЛАЙН", offline_err: "❌ ОФЛАЙН", ready: "ГОТОВО", busy: "📵 ЗАЙНЯТО", 
@@ -29,8 +28,7 @@ const DICT = {
         ui_pass: "Пароль доступу", ui_start: "УВІЙТИ", ui_target: "Номер абонента", ui_call: "ДЗВІНОК", ui_sms_btn: "ВІДПРАВИТИ SMS", 
         ui_msg_inp: "Повідомлення...", ui_send: "НАДІСЛАТИ", ui_accept: "ПРИЙНЯТИ", ui_decline: "ВІДХИЛИТИ", ui_hang: "ЗАВЕРШИТИ", 
         ui_photo: "ФОТО", ui_geo: "ГЕО", ui_burn: "ЗНИЩИТИ", ui_pre_sms: "Текст SMS (Офлайн)...", ui_read_sms: "✉️ ВХІДНІ", 
-        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 8 СИМВОЛІВ!",
-        ui_lbl_target: "🎯 ІДЕНТИФІКАТОР ЦІЛІ", ui_lbl_msg: "✉️ ПАКЕТ ДАНИХ (SMS)", ui_inc_link: "ВХІДНИЙ ЗВ'ЯЗОК"
+        ui_burn_next: "ЗНИЩИТИ Й ДАЛІ", ui_burn_sms: "ЗНИЩИТИ SMS", pass_short: "ПАРОЛЬ < 8 СИМВОЛІВ!"
     },
     'en': {
         online: "ONLINE", offline: "🔴 OFFLINE", offline_err: "❌ OFFLINE", ready: "READY", busy: "📵 BUSY", 
@@ -48,8 +46,7 @@ const DICT = {
         ui_pass: "Passcode", ui_start: "START", ui_target: "Target Number", ui_call: "CALL", ui_sms_btn: "SEND SMS", 
         ui_msg_inp: "Message...", ui_send: "SEND", ui_accept: "ACCEPT", ui_decline: "DECLINE", ui_hang: "HANG UP", 
         ui_photo: "PHOTO", ui_geo: "GEO", ui_burn: "BURN", ui_pre_sms: "SMS Text (Offline)...", ui_read_sms: "✉️ INBOX", 
-        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 8 CHARS!",
-        ui_lbl_target: "🎯 TARGET IDENTIFIER", ui_lbl_msg: "✉️ DATA PACKET (SMS)", ui_inc_link: "INCOMING LINK"
+        ui_burn_next: "BURN & NEXT", ui_burn_sms: "BURN SMS", pass_short: "PASSCODE < 8 CHARS!"
     }
 };
 
@@ -59,7 +56,7 @@ function applyLangToUI() {
     const tr = (id, key, isPlaceholder = false) => { const el = document.getElementById(id); if (el) { if (isPlaceholder) el.placeholder = t(key); else el.textContent = t(key); } };
     tr('passInput', 'ui_pass', true); tr('startBtn', 'ui_start'); tr('targetNum', 'ui_target', true); tr('callBtn', 'ui_call'); tr('smsBtn', 'ui_sms_btn'); tr('msgInput', 'ui_msg_inp', true); tr('sendBtn', 'ui_send'); tr('acceptBtn', 'ui_accept'); tr('declineBtn', 'ui_decline'); tr('hangBtn', 'ui_hang'); tr('photoBtn', 'ui_photo'); tr('geoBtn', 'ui_geo'); tr('burnBtn', 'ui_burn'); tr('preCallMsg', 'ui_pre_sms', true);
     
-    const incTitle = document.querySelector('#incomingUI h2'); if (incTitle) incTitle.textContent = t('ui_inc_link');
+    const incTitle = document.querySelector('#incomingUI h2'); if (incTitle) incTitle.textContent = t('ui_inc_link') || "ВХІДНИЙ ЗВ'ЯЗОК";
 
     const vBtn = document.getElementById("videoModeBtn"); if(vBtn) { if (mediaMode === 'video') vBtn.textContent = t('btn_video_on'); else if (mediaMode === 'data') vBtn.textContent = t('btn_chat_only'); else vBtn.textContent = t('btn_audio_only'); }
     const muteBtn = document.getElementById("muteBtn"); if(muteBtn) muteBtn.textContent = isMuted ? t('btn_mute_muted') : t('btn_mute_on');
@@ -89,6 +86,7 @@ let audioCtx = null, micSource = null, distortionNode = null, isScrambled = fals
 const ringtone = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg"); 
 ringtone.loop = true;
 
+// Токен пристрою для захисту номера
 let deviceToken = localStorage.getItem('dresden_device_token');
 if (!deviceToken) {
     deviceToken = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substr(2));
@@ -483,9 +481,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     bind("videoModeBtn", () => { if (mediaMode === 'audio') mediaMode = 'video'; else if (mediaMode === 'video') mediaMode = 'data'; else mediaMode = 'audio'; vibrate(30); const btn = document.getElementById("videoModeBtn"); if (mediaMode === 'video') { btn.textContent = t('btn_video_on'); btn.style.color = "#39FF14"; btn.style.borderColor = "#39FF14"; } else if (mediaMode === 'data') { btn.textContent = t('btn_chat_only'); btn.style.color = "#00BFFF"; btn.style.borderColor = "#00BFFF"; } else { btn.textContent = t('btn_audio_only'); btn.style.color = "#FFD60A"; btn.style.borderColor = "#333"; } });
-    bind("hangBtn", () => { if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); }); bind("declineBtn", () => { if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); });
+    bind("hangBtn", () => { if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); }); 
+    bind("declineBtn", () => { if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); });
     
-    // 🔥 ФІКС: Блокування дзвінка самому собі
+    // 🔥 ПОВЕРНУТО: Захист від дзвінка самому собі
     bind("callBtn", async () => {
         const target = document.getElementById("targetNum").value.trim();
         const myId = localStorage.getItem("my_id");
