@@ -1,14 +1,13 @@
 /**
  * ============================================================
- * DRESDEN TACTICAL SYSTEM v122.1 [TITAN LOGIN FIX]
- * STATUS: MULTILANGUAGE (EN/UA) + ROCK SOLID
- * FIX: LOGIN SCREEN HIDING BUG, PASSWORD LENGTH WARNING
+ * DRESDEN TACTICAL SYSTEM v123.0 [TITAN VISUAL FIX]
+ * STATUS: MULTILANGUAGE + ROCK SOLID
+ * FIX: INVISIBLE INCOMING CALLS/SMS, MISSING ONLINE COUNTER
  * ============================================================
  */
 
 "use strict";
 
-// 🔥 БАГАТОМОВНИЙ СЛОВНИК (DICTIONARY)
 let currentLang = localStorage.getItem('dresden_lang') || 'ua';
 
 const DICT = {
@@ -65,19 +64,17 @@ function applyLangToUI() {
     const statusEl = document.getElementById("status"); if (statusEl && statusEl.textContent.includes("READY") || statusEl.textContent.includes("ГОТОВО")) statusEl.textContent = t('ready');
 }
 
-// --- ТАКТИЧНИЙ UI ---
 (function injectTacticalLayout() {
     if (document.getElementById('tactical-layout')) return;
     const style = document.createElement('style');
     style.id = 'tactical-layout';
     style.innerHTML = `
-        /* 🔥 ФІКС ЗНИКНЕННЯ ЛОГІНУ */
         .hidden { display: none !important; }
-        
         body, html { height: 100%; overflow: hidden !important; overscroll-behavior: none; background: #000; margin: 0; font-family: monospace; }
         #mainApp:not(.hidden) { display: flex !important; flex-direction: column !important; height: 100dvh !important; width: 100vw !important; overflow: hidden !important; }
         .top-bar { flex: 0 0 auto; padding: 5px 10px; z-index: 100; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
         #activeCallUI:not(.hidden) { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; overflow: hidden !important; position: relative !important; }
+        #incomingUI:not(.hidden) { display: flex !important; flex-direction: column !important; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200; }
         #remoteVideo { width: 100% !important; height: 38dvh !important; object-fit: cover !important; border-bottom: 2px solid #39FF14 !important; background: #050505 !important; flex: 0 0 auto !important; }
         #localVideo { position: absolute !important; top: 10px !important; right: 10px !important; width: 75px !important; height: 100px !important; object-fit: cover !important; border: 2px solid #FFD60A !important; border-radius: 4px !important; box-shadow: 0 0 15px rgba(0,0,0,1) !important; z-index: 1000 !important; background: #000 !important; }
         #chatMessages { flex: 1 1 auto !important; overflow-y: auto !important; padding: 10px !important; background: linear-gradient(180deg, #050505 0%, #000 100%) !important; scroll-behavior: smooth !important; border-top: 1px solid #1a1a1a; }
@@ -165,9 +162,11 @@ function initWS() {
     };
     ws.onclose = () => { setStatus(t('offline'), "red"); setTimeout(initWS, 3000); };
     ws.onmessage = async (e) => {
-        let d = JSON.parse(e.data);
+        let d;
+        try { d = JSON.parse(e.data); } catch(err) { return; }
+        
         if (d.type === "your_number") { localStorage.setItem("my_id", d.number); document.getElementById("myNum").textContent = d.number; return; }
-        if (d.type === "user_count") { document.getElementById("userCount").textContent = d.count; return; }
+        if (d.type === "user_count") { const uc = document.getElementById("userCount"); if (uc) uc.textContent = d.count; return; }
         if (d.type === "peer_offline") { 
             if (isBusy || pc || remoteNum) { setStatus(t('offline_err'), "red"); setTimeout(resetToDialer, 2500); } 
             else { setStatus(t('waiting_peer'), "var(--warn)"); setTimeout(() => { if (ws && ws.readyState === WebSocket.OPEN) setStatus(t('online'), "#39FF14"); }, 3000); }
@@ -291,11 +290,10 @@ async function toggleScrambler() { if (!stream || !pc) return; isScrambled = !is
 function toggleMute() { if (!stream) return; isMuted = !isMuted; stream.getAudioTracks().forEach(track => track.enabled = !isMuted); const btn = document.getElementById("muteBtn"); btn.style.color = isMuted ? "red" : "#39FF14"; btn.textContent = isMuted ? t('btn_mute_muted') : t('btn_mute_on'); }
 
 document.addEventListener("DOMContentLoaded", () => {
-    applyLangToUI(); // Ініціалізуємо текст при старті
+    applyLangToUI(); 
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible' && isSystemInitialized) initWS(); });
     const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
 
-    // Додаємо кнопку мови в шапку (ще ДО входу в систему)
     const topBar = document.querySelector('.top-bar');
     if (topBar && !document.getElementById("langBtn")) {
         const langBtn = document.createElement("button"); langBtn.id = "langBtn";
@@ -308,7 +306,9 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener('popstate', (e) => {
         if (isBusy || pc || !document.getElementById("activeCallUI").classList.contains("hidden") || !document.getElementById("incomingUI").classList.contains("hidden")) { history.pushState(null, null, location.href); if (remoteNum) sendWS({ type: "hangup", to: remoteNum }); resetToDialer(); } 
         else if (isSystemInitialized) { 
-            document.getElementById("mainApp").classList.add("hidden"); document.getElementById("loginScreen").style.display = "flex"; isSystemInitialized = false; 
+            document.getElementById("mainApp").classList.add("hidden"); 
+            document.getElementById("loginScreen").classList.remove("hidden"); 
+            isSystemInitialized = false; 
             if (ws) { ws.onclose = null; ws.close(); ws = null; } 
             if (wsPingInterval) { clearInterval(wsPingInterval); wsPingInterval = null; } 
             if (smsQueueInterval) { clearInterval(smsQueueInterval); smsQueueInterval = null; }
@@ -322,7 +322,6 @@ document.addEventListener("DOMContentLoaded", () => {
     bind("startBtn", async () => { 
         const v = document.getElementById("passInput").value; 
         
-        // 🔥 ФІКС ПАРОЛЯ: Тепер каже, якщо коротко!
         if (v.length < 4) {
             const inp = document.getElementById("passInput");
             inp.style.borderColor = "red";
@@ -333,9 +332,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 🔥 ФІКС ЗНИКНЕННЯ ЕКРАНУ ЛОГІНУ (Жорстке перемикання)
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("mainApp").style.display = "flex";
+        document.getElementById("loginScreen").classList.add("hidden");
         document.getElementById("mainApp").classList.remove("hidden");
         
         history.pushState(null, null, location.href); 
